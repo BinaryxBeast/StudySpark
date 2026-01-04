@@ -1,0 +1,142 @@
+import React, { useState } from 'react';
+import '../App.css'; // Ensure styles are applied
+
+const SummaryCard = ({ summary }) => {
+    const [expanded, setExpanded] = useState(false);
+
+    if (!summary) return null;
+
+    // --- MODE 1: CHEAT SHEET (Array of strings) ---
+    if (summary.cheat_sheet && Array.isArray(summary.cheat_sheet)) {
+        const lines = summary.cheat_sheet;
+        const isLong = lines.length > 5;
+        const displayedLines = expanded ? lines : lines.slice(0, 5);
+
+        return (
+            <div className="summary-card cheat-sheet-mode">
+                <div className="summary-content">
+                    <div className="summary-text-content">
+                        {displayedLines.map((line, index) => (
+                            <li key={index} className="summary-list-item">{line}</li>
+                        ))}
+                        {!expanded && isLong && <div className="summary-fade-overlay"></div>}
+                    </div>
+                </div>
+                {isLong && (
+                    <button className="read-more-btn" onClick={() => setExpanded(!expanded)}>
+                        {expanded ? "Show Less" : "Read More"}
+                    </button>
+                )}
+            </div>
+        );
+    }
+
+    // --- MODE 2: DETAILED REVISION (Object with sections) ---
+    if (summary.definitions || summary.must_revise || summary.important_questions) {
+        return (
+            <div className="summary-card detailed-mode">
+                {/* 1. Definitions */}
+                {summary.definitions && summary.definitions.length > 0 && (
+                    <div className="detailed-section">
+                        <h4>📌 Important Definitions</h4>
+                        {summary.definitions.map((item, i) => (
+                            <div key={i} className="detailed-item">
+                                <span className="term">{item.term}</span>: <span className="def">{item.definition}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 2. Must Revise */}
+                {summary.must_revise && summary.must_revise.length > 0 && (
+                    <div className="detailed-section">
+                        <h4>🔥 Must Revise Concepts</h4>
+                        {summary.must_revise.map((item, i) => (
+                            <div key={i} className="detailed-item">
+                                <strong>{item.concept}</strong> — <span>{item.reason}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 3. Important Questions */}
+                {summary.important_questions && summary.important_questions.length > 0 && (
+                    <div className="detailed-section">
+                        <h4>❓ Most Important Questions</h4>
+                        {summary.important_questions.map((item, i) => (
+                            <div key={i} className="detailed-item question-item">
+                                <span className={`badge ${item.importance?.toLowerCase().replace(' ', '-')}`}>{item.importance}</span>
+                                <span className="question-text">{item.question}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 4. Exam Focus */}
+                {summary.exam_focus && summary.exam_focus.length > 0 && (
+                    <div className="detailed-section">
+                        <h4>🎯 Exam Focus Strategy</h4>
+                        {summary.exam_focus.map((item, i) => (
+                            <div key={i} className="detailed-item">
+                                <strong>{item.topic}</strong>: {item.strategy}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* 5. Common Mistakes */}
+                {summary.common_mistakes && summary.common_mistakes.length > 0 && (
+                    <div className="detailed-section">
+                        <h4>⚠️ Common Mistakes</h4>
+                        {summary.common_mistakes.map((item, i) => (
+                            <div key={i} className="detailed-item mistake-item">
+                                <span className="mistake-point">❌ {item.point}</span>
+                                <span className="mistake-correction">✅ {item.correction}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // --- FALLBACK (Legacy plain text) ---
+    // Ensure summary is a string
+    const summaryText = typeof summary === 'string' ? summary : String(summary);
+
+    // Split by newlines and filter empty lines
+    const lines = summaryText.split('\n').filter(line => line.trim() !== '');
+    const isLong = lines.length > 5;
+
+    const displayedLines = expanded ? lines : lines.slice(0, 5);
+
+    return (
+        <div className="summary-card">
+            <div className="summary-content">
+                <div className="summary-text-content">
+                    {displayedLines.map((line, index) => {
+                        const trimmed = line.trim();
+                        // Check if it's a bullet point
+                        if (trimmed.startsWith('-') || trimmed.startsWith('•') || /^\d+\./.test(trimmed)) {
+                            return <li key={index} className="summary-list-item">{trimmed.replace(/^[-\u2022]|\d+\.\s*/, '')}</li>
+                        }
+                        return <p key={index} className="summary-paragraph">{line}</p>
+                    })}
+                    {!expanded && isLong && (
+                        <div className="summary-fade-overlay"></div>
+                    )}
+                </div>
+            </div>
+            {isLong && (
+                <button
+                    className="read-more-btn"
+                    onClick={() => setExpanded(!expanded)}
+                >
+                    {expanded ? "Show Less" : "Read More"}
+                </button>
+            )}
+        </div>
+    );
+};
+
+export default SummaryCard;
