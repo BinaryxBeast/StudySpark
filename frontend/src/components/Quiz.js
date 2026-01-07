@@ -1,14 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import '../App.css';
 
 const Quiz = ({ questions }) => {
-    // State to track answers for each question: { qIndex: { selectedOption: string, isCorrect: boolean } }
     const [answersState, setAnswersState] = useState({});
     const [score, setScore] = useState(null);
 
-    const handleOptionSelect = (qIndex, option, correctParam) => {
-        // Determine the correct answer if not provided directly in 'option' (API structure varies)
-        // Assuming 'questions' has 'answer' field which is the correct string
+    // Calculate running score
+    const runningScore = useMemo(() => {
+        let correct = 0;
+        let answered = 0;
+        Object.values(answersState).forEach(state => {
+            answered++;
+            if (state.isCorrect) correct++;
+        });
+        return { correct, answered };
+    }, [answersState]);
+
+    const handleOptionSelect = (qIndex, option) => {
+        if (answersState[qIndex]) return; // Already answered
+
         const correctAnswer = questions[qIndex].answer;
         const isCorrect = option === correctAnswer;
 
@@ -27,13 +37,22 @@ const Quiz = ({ questions }) => {
             if (answersState[index]?.isCorrect) currentScore++;
         });
         setScore(currentScore);
-    }
+    };
+
+    const allAnswered = Object.keys(answersState).length === questions.length;
 
     return (
         <div className="quiz-section-container">
             <div className="quiz-header">
-                <h3>Interactive Quiz</h3>
-                <p className="quiz-subtitle">Test your knowledge</p>
+                <div>
+                    <h3>Interactive Quiz</h3>
+                    <p className="quiz-subtitle">Test your knowledge</p>
+                </div>
+                {score === null && runningScore.answered > 0 && (
+                    <span className="quiz-score-indicator">
+                        {runningScore.correct} / {runningScore.answered} correct
+                    </span>
+                )}
             </div>
 
             <div className="quiz-questions-list">
@@ -43,16 +62,18 @@ const Quiz = ({ questions }) => {
 
                     return (
                         <div key={index} className="question-card">
-                            <p className="question-text"><strong>{index + 1}. {q.question}</strong></p>
+                            <p className="question-text">
+                                <strong>{index + 1}.</strong> {q.question}
+                            </p>
 
                             <div className="options-list">
                                 {q.options.map((opt, optIndex) => {
                                     let optionClass = "quiz-option";
                                     if (hasAnswered) {
                                         if (opt === q.answer) {
-                                            optionClass += " correct"; // Always show correct answer
+                                            optionClass += " correct";
                                         } else if (state.selectedOption === opt && !state.isCorrect) {
-                                            optionClass += " wrong"; // Selected wrong answer
+                                            optionClass += " wrong";
                                         } else {
                                             optionClass += " disabled";
                                         }
@@ -62,21 +83,39 @@ const Quiz = ({ questions }) => {
                                         <div
                                             key={optIndex}
                                             className={optionClass}
-                                            onClick={() => !hasAnswered && handleOptionSelect(index, opt)}
+                                            onClick={() => handleOptionSelect(index, opt)}
+                                            role="button"
+                                            tabIndex={hasAnswered ? -1 : 0}
+                                            onKeyDown={(e) => e.key === 'Enter' && !hasAnswered && handleOptionSelect(index, opt)}
+                                            aria-disabled={hasAnswered}
                                         >
-                                            <span className="option-marker">{String.fromCharCode(65 + optIndex)}</span>
+                                            <span className="option-marker">
+                                                {String.fromCharCode(65 + optIndex)}
+                                            </span>
                                             <span className="option-text">{opt}</span>
-                                            {hasAnswered && opt === q.answer && <span className="feedback-icon">✔</span>}
-                                            {hasAnswered && state.selectedOption === opt && !state.isCorrect && <span className="feedback-icon">✖</span>}
+                                            {hasAnswered && opt === q.answer && (
+                                                <span className="feedback-icon">✓</span>
+                                            )}
+                                            {hasAnswered && state.selectedOption === opt && !state.isCorrect && (
+                                                <span className="feedback-icon">✕</span>
+                                            )}
                                         </div>
                                     );
                                 })}
                             </div>
 
-                            {/* Feedback Area */}
+                            {/* Feedback / Explanation */}
                             {hasAnswered && (
                                 <div className={`feedback-message ${state.isCorrect ? 'positive' : 'negative'}`}>
-                                    {state.isCorrect ? "Correct!" : `Incorrect. The correct answer is ${q.answer}.`}
+                                    {state.isCorrect
+                                        ? "Correct! Well done."
+                                        : `Incorrect. The correct answer is: ${q.answer}`
+                                    }
+                                    {q.explanation && (
+                                        <p style={{ marginTop: '8px', fontWeight: 400, opacity: 0.9 }}>
+                                            {q.explanation}
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -89,18 +128,31 @@ const Quiz = ({ questions }) => {
                     <button
                         className="submit-quiz-btn"
                         onClick={calculateFinalScore}
-                        disabled={Object.keys(answersState).length !== questions.length}
+                        disabled={!allAnswered}
                     >
                         Finish Quiz
                     </button>
                 ) : (
                     <div className="score-display">
-                        <h3>Your Score: {score} / {questions.length}</h3>
-                        <button className="retry-quiz-btn" onClick={() => { setAnswersState({}); setScore(null); }}>Retry Quiz</button>
+                        <h3>
+                            Your Score: {score} / {questions.length}
+                            <span style={{
+                                marginLeft: '12px',
+                                fontSize: '16px',
+                                color: score >= questions.length * 0.7 ? 'var(--md-success)' : 'var(--md-on-surface-variant)'
+                            }}>
+                                {score >= questions.length * 0.7 ? '🎉 Great job!' : '📚 Keep practicing!'}
+                            </span>
+                        </h3>
+                        <button
+                            className="retry-quiz-btn"
+                            onClick={() => { setAnswersState({}); setScore(null); }}
+                        >
+                            Retry Quiz
+                        </button>
                     </div>
                 )}
             </div>
-
         </div>
     );
 };
