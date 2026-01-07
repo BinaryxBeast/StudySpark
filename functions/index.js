@@ -14,17 +14,33 @@ const fs = require("fs");
 // Securely access your API Key
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
 
-// Retry Helper
-async function callGeminiWithRetry(model, promptArgs, retries = 3, delay = 2000) {
-    try {
-        return await model.generateContent(promptArgs);
-    } catch (error) {
-        if (retries > 0 && (error.message.includes("429") || error.message.includes("503") || error.message.includes("Resource exhausted"))) {
-            logger.warn(`Gemini rate limited. Retrying in ${delay}ms... (${retries} retries left)`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return callGeminiWithRetry(model, promptArgs, retries - 1, delay * 2);
+// Generic Retry Helper
+async function performGeminiAction(actionFn, retries = 8, initialDelay = 2000) {
+    let currentDelay = initialDelay;
+
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            return await actionFn();
+        } catch (error) {
+            const isRateLimit = error.message.includes("429") ||
+                error.message.includes("503") ||
+                error.message.includes("Resource exhausted") ||
+                error.message.includes("Too Many Requests");
+
+            if (!isRateLimit || attempt === retries) {
+                throw error; // Not retryable or out of retries
+            }
+
+            // Add Jitter: random value between 0 and 1000ms
+            const jitter = Math.floor(Math.random() * 1000);
+            const waitTime = currentDelay + jitter;
+
+            logger.warn(`Gemini busy/rate-limited (Attempt ${attempt + 1}). Retrying in ${Math.round(waitTime)}ms... Error: ${error.message}`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+
+            // Exponential Backoff: Multiply by 1.5, but cap at 15 seconds
+            currentDelay = Math.min(currentDelay * 1.5, 15000);
         }
-        throw error;
     }
 }
 
@@ -58,10 +74,12 @@ exports.processStudyMaterial = onObjectFinalized({
         const fileManager = new GoogleAIFileManager(GEMINI_API_KEY.value());
 
         // Upload to Gemini
-        const uploadResult = await fileManager.uploadFile(tempFilePath, {
-            mimeType: "application/pdf",
-            displayName: fileName,
-        });
+        const uploadResult = await performGeminiAction(() =>
+            fileManager.uploadFile(tempFilePath, {
+                mimeType: "application/pdf",
+                displayName: fileName,
+            })
+        );
 
         const fileUri = uploadResult.file.uri;
         logger.log(`Uploaded file to Gemini: ${fileUri}`);
@@ -102,8 +120,16 @@ exports.processStudyMaterial = onObjectFinalized({
         let prompt;
         if (summaryMode === 'cheat-sheet') {
             prompt = `
+IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
+You MUST:
+- Read and extract text from ALL images in the PDF
+- Process handwritten text using OCR
+- Handle both printed and handwritten content
+- Analyze all visual content including diagrams, equations, and annotations
+- If the PDF contains only images, treat them as the primary source material
+
 You are an expert exam-oriented study assistant.
-I will provide you with extracted text from a PDF (study material).
+I will provide you with a PDF (study material) which may be handwritten, typed, or scanned.
 
 Your task is to generate an EXTREMELY SHORT revision cheat sheet using ONLY:
 - Keywords
@@ -139,8 +165,16 @@ OUTPUT FORMAT JSON:
 The output must feel like a LAST-MINUTE EXAM CHEAT SHEET.`;
         } else {
             prompt = `
+IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
+You MUST:
+- Read and extract text from ALL images in the PDF
+- Process handwritten text using OCR
+- Handle both printed and handwritten content
+- Analyze all visual content including diagrams, equations, and annotations
+- If the PDF contains only images, treat them as the primary source material
+
 You are a strict, exam-focused study assistant.
-I will provide you with extracted text from a PDF (study material).
+I will provide you with a PDF (study material) which may be handwritten, typed, or scanned.
 Your task is to generate a DETAILED REVISION GUIDE optimized for EXAMS.
 INCLUDE ONLY WHAT IS NECESSARY FOR EXAMS.
 
@@ -188,7 +222,7 @@ OUTPUT FORMAT JSON:
 }`;
         }
 
-        const result = await callGeminiWithRetry(model, [filePart, prompt]);
+        const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
         const output = JSON.parse(result.response.text());
 
         await docRef.set({
@@ -216,7 +250,10 @@ const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
 
 exports.generateAdditionalFeatures = onDocumentUpdated({
     secrets: [GEMINI_API_KEY],
-    document: "study_results/{docId}"
+    document: "study_results/{docId}",
+    cpu: 2,
+    memory: "1GiB",
+    timeoutSeconds: 300
 }, async (event) => {
     const newData = event.data.after.data();
     const previousData = event.data.before.data();
@@ -263,104 +300,197 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
         let hasUpdates = false;
 
         if (requestDetailedSummary) {
-            logger.log("Generating Detailed Summary...");
-            const prompt = `
-            You are a strict, exam-focused study assistant.
-            I will provide you with extracted text from a PDF (study material).
-            Your task is to generate a DETAILED REVISION GUIDE optimized for EXAMS.
-            INCLUDE ONLY WHAT IS NECESSARY FOR EXAMS.
-            
-            STRUCTURE THE OUTPUT INTO THESE SECTIONS:
-            
-            1. IMPORTANT DEFINITIONS
-            - Write crisp, exam-ready definitions
-            - Avoid unnecessary theory
-            - Highlight keywords in each definition
-            
-            2. MUST-REVISE CONCEPTS
-            - List concepts students MUST revise before exams
-            - Explain briefly why each concept is important
-            
-            3. MOST IMPORTANT QUESTIONS (Exam-Oriented)
-            - Generate likely exam questions
-            - Label each question as:
-              - Very Important
-              - Important
-              - Optional
-            
-            4. WHAT TO FOCUS ON (Exam Strategy)
-            - Tell the student:
-              - What to memorize
-              - What to understand
-              - What can be skipped if short on time
-            
-            5. COMMON MISTAKES / TRAPS
-            - Points where students usually lose marks
-            - Conceptual confusions
-            
-            STRICT RULES:
-            - No storytelling
-            - No unnecessary examples
-            - Keep explanations concise
-            - Think like a professor setting the exam
-            
-            OUTPUT FORMAT JSON:
-            {
-              "definitions": [{ "term": "...", "definition": "..." }],
-              "must_revise": [{ "concept": "...", "reason": "..." }],
-              "important_questions": [{ "question": "...", "importance": "Very Important" }],
-              "exam_focus": [{ "topic": "...", "strategy": "Memorize/Understand/Skip" }],
-              "common_mistakes": [{ "point": "...", "correction": "..." }]
-            }`;
+            try {
+                logger.log("Generating Detailed Summary...");
 
-            const result = await callGeminiWithRetry(model, [filePart, prompt]);
-            const output = JSON.parse(result.response.text());
-            batch.update(docRef, { summary: output, summaryMode: 'detailed', requestDetailedSummary: false });
-            hasUpdates = true;
+                // Preserve the original cheat-sheet summary before generating detailed
+                const cheatSheetSummary = newData.summary;
+
+                const prompt = `
+                IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
+                You MUST:
+                - Read and extract text from ALL images in the PDF
+                - Process handwritten text using OCR
+                - Handle both printed and handwritten content
+                - Analyze all visual content including diagrams, equations, and annotations
+                - If the PDF contains only images, treat them as the primary source material
+                
+                You are a strict, exam-focused study assistant.
+                I will provide you with a PDF (study material) which may be handwritten, typed, or scanned.
+                Your task is to generate a DETAILED REVISION GUIDE optimized for EXAMS.
+                INCLUDE ONLY WHAT IS NECESSARY FOR EXAMS.
+                
+                STRUCTURE THE OUTPUT INTO THESE SECTIONS:
+                
+                1. IMPORTANT DEFINITIONS
+                - Write crisp, exam-ready definitions
+                - Avoid unnecessary theory
+                - Highlight keywords in each definition
+                
+                2. MUST-REVISE CONCEPTS
+                - List concepts students MUST revise before exams
+                - Explain briefly why each concept is important
+                
+                3. MOST IMPORTANT QUESTIONS (Exam-Oriented)
+                - Generate likely exam questions
+                - Label each question as:
+                  - Very Important
+                  - Important
+                  - Optional
+                
+                4. WHAT TO FOCUS ON (Exam Strategy)
+                - Tell the student:
+                  - What to memorize
+                  - What to understand
+                  - What can be skipped if short on time
+                
+                5. COMMON MISTAKES / TRAPS
+                - Points where students usually lose marks
+                - Conceptual confusions
+                
+                STRICT RULES:
+                - No storytelling
+                - No unnecessary examples
+                - Keep explanations concise
+                - Think like a professor setting the exam
+                
+                OUTPUT FORMAT JSON:
+                {
+                  "definitions": [{ "term": "...", "definition": "..." }],
+                  "must_revise": [{ "concept": "...", "reason": "..." }],
+                  "important_questions": [{ "question": "...", "importance": "Very Important" }],
+                  "exam_focus": [{ "topic": "...", "strategy": "Memorize/Understand/Skip" }],
+                  "common_mistakes": [{ "point": "...", "correction": "..." }]
+                }`;
+
+                const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
+                const output = JSON.parse(result.response.text());
+
+                // Store both summaries: cheat-sheet preserved, detailed as new
+                batch.update(docRef, {
+                    cheatSheetSummary: cheatSheetSummary, // Preserve original
+                    detailedSummary: output, // Store detailed separately
+                    summary: output, // Current display (detailed)
+                    summaryMode: 'detailed',
+                    requestDetailedSummary: false,
+                    hasDetailedSummary: true // Flag for frontend
+                });
+                hasUpdates = true;
+            } catch (error) {
+                logger.error("Error generating detailed summary:", error);
+                batch.update(docRef, {
+                    requestDetailedSummary: false,
+                    summaryError: error.message.includes('429')
+                        ? 'Rate limit reached. Please try again in a few moments.'
+                        : 'Failed to generate detailed summary. Please try again.'
+                });
+                hasUpdates = true;
+            }
         }
 
+
         if (requestFlashcards) {
-            logger.log("Generating Flashcards...");
-            const prompt = `Analyze this PDF. Return a JSON object: { "flashcards": [{"front": "term", "back": "definition (max 15 words)"}] }`;
-            const result = await callGeminiWithRetry(model, [filePart, prompt]);
-            const output = JSON.parse(result.response.text());
-            batch.update(docRef, { flashcards: output.flashcards, requestFlashcards: false });
-            hasUpdates = true;
+            try {
+                logger.log("Generating Flashcards...");
+                const prompt = `
+IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
+You MUST:
+- Read and extract text from ALL images in the PDF
+- Process handwritten text and equations
+- Handle both printed and handwritten content
+- Analyze diagrams and visual annotations
+- If the PDF contains only images, treat them as the primary source material
+
+Analyze this study material and generate flashcards.
+
+GUIDELINES:
+- Create 10-15 flashcards covering key concepts
+- Each flashcard should have:
+  * front: A clear question or term
+  * back: A concise answer (maximum 15 words, but can include equations/formulas)
+- Focus on important definitions, concepts, formulas, and facts
+- Include visual elements like equations if present
+- Prioritize exam-relevant content
+
+OUTPUT FORMAT (strict JSON):
+{
+  "flashcards": [
+    {
+      "front": "term or question",
+      "back": "definition or answer (max 15 words)"
+    }
+  ]
+}`;
+                const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
+                const output = JSON.parse(result.response.text());
+                batch.update(docRef, { flashcards: output.flashcards, requestFlashcards: false });
+                hasUpdates = true;
+            } catch (error) {
+                logger.error("Error generating flashcards:", error);
+                batch.update(docRef, {
+                    requestFlashcards: false,
+                    flashcardsError: error.message.includes('429')
+                        ? 'Rate limit reached. Please try again in a few moments.'
+                        : 'Failed to generate flashcards. Please try again.'
+                });
+                hasUpdates = true;
+            }
         }
 
         if (requestQuiz) {
-            logger.log("Generating Quiz...");
-            const prompt = `
-            You are a strict, exam-focused study assistant.
-            I will provide you with extracted text from a PDF (study material).
+            try {
+                logger.log("Generating Quiz...");
+                const prompt = `
+                IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
+                You MUST:
+                - Read and extract text from ALL images in the PDF
+                - Process handwritten text using OCR
+                - Handle both printed and handwritten content
+                - Analyze all visual content including diagrams, equations, and annotations
+                - If the PDF contains only images, treat them as the primary source material
+                
+                You are a strict, exam-focused study assistant.
+                I will provide you with a PDF (study material) which may be handwritten, typed, or scanned.
 
-            Your task is to generate a **10-QUESTION INTERACTIVE QUIZ** based on the content.
-            
-            GUIDELINES:
-            1. **Quantity**: generate exactly 10 questions if the content allows. If the content is too short, generate as many high-quality questions as possible (minimum 5).
-            2. **Difficulty**: Mix straightforward recall questions with conceptual application questions.
-            3. **Relevance**: Focus on key concepts, definitions, and "must-know" facts for exams.
-            
-            OUTPUT FORMAT JSON (strict):
-            {
-              "quiz": [
+                Your task is to generate a **10-QUESTION INTERACTIVE QUIZ** based on the content.
+                
+                GUIDELINES:
+                1. **Quantity**: generate exactly 10 questions if the content allows. If the content is too short, generate as many high-quality questions as possible (minimum 5).
+                2. **Difficulty**: Mix straightforward recall questions with conceptual application questions.
+                3. **Relevance**: Focus on key concepts, definitions, and "must-know" facts for exams.
+                
+                OUTPUT FORMAT JSON (strict):
                 {
-                  "question": "The actual question text?",
-                  "options": ["Option A", "Option B", "Option C", "Option D"],
-                  "answer": "Option B" 
+                  "quiz": [
+                    {
+                      "question": "The actual question text?",
+                      "options": ["Option A", "Option B", "Option C", "Option D"],
+                      "answer": "Option B",
+                      "explanation": "A clear, concise explanation (1-2 sentences) of why this answer is correct and/or why other options are incorrect."
+                    }
+                  ]
                 }
-              ]
-            }
-            
-            IMPORTANT:
-            - "answer" must EXACTLY match one of the string values in "options".
-            - Do not label options with A), B), etc. inside the string, just provide the text.
-            - Ensure options are plausible distractors.`;
+                
+                IMPORTANT:
+                - "answer" must EXACTLY match one of the string values in "options".
+                - Do not label options with A), B), etc. inside the string, just provide the text.
+                - Ensure options are plausible distractors.
+                - "explanation" should provide educational value by clarifying the concept and helping students understand why the correct answer is right.`;
 
-            const result = await callGeminiWithRetry(model, [filePart, prompt]);
-            const output = JSON.parse(result.response.text());
-            batch.update(docRef, { quiz: output.quiz, requestQuiz: false });
-            hasUpdates = true;
+                const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
+                const output = JSON.parse(result.response.text());
+                batch.update(docRef, { quiz: output.quiz, requestQuiz: false });
+                hasUpdates = true;
+            } catch (error) {
+                logger.error("Error generating quiz:", error);
+                batch.update(docRef, {
+                    requestQuiz: false,
+                    quizError: error.message.includes('429')
+                        ? 'Rate limit reached. Please try again in a few moments.'
+                        : 'Failed to generate quiz. Please try again.'
+                });
+                hasUpdates = true;
+            }
         }
 
         if (hasUpdates) {
@@ -368,8 +498,14 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
         }
 
     } catch (error) {
-        logger.error("Error generating additional features:", error);
-        await docRef.set({ featureError: error.message }, { merge: true });
+        logger.error("Critical error in generateAdditionalFeatures:", error);
+        // Fallback error handling - should rarely reach here
+        await docRef.set({
+            criticalError: error.message,
+            requestFlashcards: false,
+            requestQuiz: false,
+            requestDetailedSummary: false
+        }, { merge: true });
     }
 });
 
