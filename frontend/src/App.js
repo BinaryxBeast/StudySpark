@@ -214,7 +214,10 @@ function App() {
       {/* Top App Bar - MD3 Flat Surface */}
       <header className="app-header">
         <div className="logo-container">
-          <span className="app-wordmark">StudySpark</span>
+          <span className="app-wordmark">
+            <span className="logo-study">Study</span>
+            <span className="logo-spark">Spark</span>
+          </span>
         </div>
         <div className="header-actions">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
@@ -252,7 +255,7 @@ function App() {
                       <div className={`upload-icon-wrapper ${dragActive ? 'pulse' : ''}`}>
                         {/* Material Upload Icon - Rounded */}
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM14 13V17H10V13H7L12 8L17 13H14Z" fill="#4285F4" />
+                          <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM14 13V17H10V13H7L12 8L17 13H14Z" fill="#125DD0" />
                         </svg>
                       </div>
                       <p className="upload-text">Drag & drop PDF here</p>
@@ -264,7 +267,7 @@ function App() {
                       <div className="upload-icon-wrapper file-selected-icon">
                         {/* Document Icon */}
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM16 18H8V16H16V18ZM16 14H8V12H16V14ZM13 9V3.5L18.5 9H13Z" fill="#4285F4" />
+                          <path d="M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM16 18H8V16H16V18ZM16 14H8V12H16V14ZM13 9V3.5L18.5 9H13Z" fill="#125DD0" />
                         </svg>
                       </div>
                       <p className="file-name-selected">{file.name}</p>
@@ -272,7 +275,7 @@ function App() {
                         {uploadStatus !== 'analyzing' && uploadStatus !== 'uploading' && uploadStatus !== 'success' && (
                           <>
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '4px' }}>
-                              <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="#4285F4" />
+                              <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="#125DD0" />
                             </svg>
                             Change file
                           </>
