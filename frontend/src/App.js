@@ -7,12 +7,16 @@ import logo from './studyspark-logo.png';
 import SummaryCard from './components/SummaryCard';
 import Flashcard from './components/Flashcard';
 import Quiz from './components/Quiz';
+import ThemeToggle from './components/ThemeToggle';
 
 
 
 function App() {
   const [file, setFile] = useState(null);
   const [data, setData] = useState(null);
+
+  // Theme State
+  const [theme, setTheme] = useState('light');
 
   // UX State Machine
   const [uploadStatus, setUploadStatus] = useState('idle'); // 'idle' | 'uploading' | 'success' | 'error'
@@ -26,6 +30,13 @@ function App() {
   const [generatingFlashcards, setGeneratingFlashcards] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
 
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    setTheme(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
+
   // Reset local loading states when results or errors arrive
   useEffect(() => {
     if (data?.flashcards || data?.flashcardsError) {
@@ -35,6 +46,14 @@ function App() {
       setGeneratingQuiz(false);
     }
   }, [data?.flashcards, data?.flashcardsError, data?.quiz, data?.quizError]);
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+  };
 
 
 
@@ -197,11 +216,14 @@ function App() {
         <div className="logo-container">
           <span className="app-wordmark">StudySpark</span>
         </div>
-        {data && (
-          <button className="reset-button" onClick={() => { setData(null); setFile(null); setUploadStatus('idle'); setUploadProgress(0); setErrorMessage(null); }}>
-            Upload Another
-          </button>
-        )}
+        <div className="header-actions">
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          {data && (
+            <button className="reset-button" onClick={() => { setData(null); setFile(null); setUploadStatus('idle'); setUploadProgress(0); setErrorMessage(null); }}>
+              Upload Another
+            </button>
+          )}
+        </div>
       </header>
 
       {/* Main Content */}

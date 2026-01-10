@@ -1,7 +1,7 @@
 /* =========================================
    STUDYSPARK - MATERIAL DESIGN 3 THEME
    Google Blue Primary (#4285F4)
-   Light Mode Only
+   Light & Dark Mode Support
    ========================================= */
 
 /* MD3 Design Tokens */
@@ -64,6 +64,47 @@
   --md-font-body: 'Roboto', sans-serif;
 }
 
+/* =========================================
+   DARK MODE THEME
+   Material Design 3 Dark Color Scheme
+   ========================================= */
+[data-theme="dark"] {
+  /* Primary Colors - Dark Mode */
+  --md-primary: #8AB4F8;
+  --md-primary-container: #004A77;
+  --md-on-primary: #003258;
+  --md-on-primary-container: #D3E3FD;
+
+  /* Surface Colors - Dark Mode */
+  --md-surface: #1C1B1F;
+  --md-surface-dim: #141316;
+  --md-surface-container-lowest: #0F0E11;
+  --md-surface-container-low: #1C1B1F;
+  --md-surface-container: #201F23;
+  --md-surface-container-high: #2B2930;
+  --md-surface-container-highest: #36343B;
+
+  /* On-Surface Colors - Dark Mode */
+  --md-on-surface: #E6E1E5;
+  --md-on-surface-variant: #CAC4D0;
+  --md-outline: #938F99;
+  --md-outline-variant: #49454F;
+
+  /* Semantic Colors - Dark Mode */
+  --md-error: #F2B8B5;
+  --md-error-container: #8C1D18;
+  --md-on-error: #601410;
+  --md-success: #81C995;
+  --md-success-container: #1E4620;
+  --md-on-success: #B8E6C0;
+
+  /* Elevation Shadows - Dark Mode (more subtle) */
+  --md-elevation-1: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px rgba(0, 0, 0, 0.3);
+  --md-elevation-2: 0px 2px 6px 2px rgba(0, 0, 0, 0.15), 0px 1px 2px rgba(0, 0, 0, 0.3);
+  --md-elevation-3: 0px 4px 8px 3px rgba(0, 0, 0, 0.15), 0px 1px 3px rgba(0, 0, 0, 0.3);
+  --md-elevation-4: 0px 6px 10px 4px rgba(0, 0, 0, 0.15), 0px 2px 3px rgba(0, 0, 0, 0.3);
+}
+
 /* Reset & Base */
 *,
 *::before,
@@ -71,6 +112,7 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 body {
@@ -123,10 +165,17 @@ body {
   letter-spacing: -0.5px;
 }
 
-/* Upload Another Button - Outlined Style */
-.reset-button {
+/* Header Actions Container */
+.header-actions {
   position: absolute;
   right: var(--md-spacing-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--md-spacing-sm);
+}
+
+/* Upload Another Button - Outlined Style */
+.reset-button {
   background: transparent;
   border: 1px solid var(--md-outline);
   color: var(--md-primary);
@@ -205,7 +254,7 @@ body {
   gap: 6px;
   padding: 6px 12px;
   background-color: var(--md-success-container);
-  color: #137333;
+  color: var(--md-on-success);
   border-radius: var(--md-radius-full);
   font-size: 12px;
   font-weight: 500;
@@ -649,7 +698,7 @@ body {
 
 .status-pill.ready {
   background-color: var(--md-success-container);
-  color: #137333;
+  color: var(--md-on-success);
 }
 
 .status-pill.pending {
@@ -676,7 +725,7 @@ body {
   gap: 6px;
   padding: 6px 12px;
   background-color: var(--md-success-container);
-  color: #137333;
+  color: var(--md-on-success);
   border-radius: var(--md-radius-sm);
   font-size: 12px;
   font-weight: 500;

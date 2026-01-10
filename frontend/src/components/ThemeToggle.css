@@ -1,0 +1,66 @@
+/* =========================================
+   THEME TOGGLE - MATERIAL DESIGN 3
+   Icon Button Component
+   ========================================= */
+
+.theme-toggle {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background-color: transparent;
+    color: var(--md-on-surface-variant);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+    margin-right: var(--md-spacing-sm);
+}
+
+.theme-toggle:hover {
+    background-color: var(--md-surface-container-high);
+    color: var(--md-on-surface);
+}
+
+.theme-toggle:active {
+    transform: scale(0.95);
+    background-color: var(--md-surface-container-highest);
+}
+
+.theme-toggle:focus-visible {
+    outline: 2px solid var(--md-primary);
+    outline-offset: 2px;
+}
+
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.theme-toggle:hover svg {
+    transform: rotate(15deg) scale(1.1);
+}
+
+/* Ripple effect on click */
+.theme-toggle::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background-color: var(--md-primary);
+    opacity: 0;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+}
+
+.theme-toggle:active::before {
+    width: 40px;
+    height: 40px;
+    opacity: 0.2;
+}
