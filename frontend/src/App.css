@@ -177,6 +177,14 @@ body {
   color: var(--md-primary);
 }
 
+/* Header Logo Icon */
+.header-logo-icon {
+  width: 36px;
+  height: 36px;
+  margin-right: var(--md-spacing-sm);
+  object-fit: contain;
+}
+
 /* Header Actions Container */
 .header-actions {
   position: absolute;
@@ -265,8 +273,8 @@ body {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background-color: var(--md-success-container);
-  color: var(--md-on-success);
+  background-color: var(--md-primary-container);
+  color: var(--md-primary);
   border-radius: var(--md-radius-full);
   font-size: 12px;
   font-weight: 500;
@@ -274,6 +282,7 @@ body {
 
 .trust-badge svg {
   flex-shrink: 0;
+  color: var(--md-primary);
 }
 
 #form-file-upload {
@@ -302,7 +311,7 @@ body {
 
 #label-file-upload:hover {
   border-color: var(--md-primary);
-  background-color: rgba(66, 133, 244, 0.04);
+  background-color: rgba(18, 93, 208, 0.06);
   box-shadow: var(--md-elevation-2);
 }
 
@@ -339,6 +348,7 @@ body {
 .upload-icon-wrapper svg {
   width: 32px;
   height: 32px;
+  color: var(--md-primary);
 }
 
 .upload-icon-wrapper.file-selected-icon {
