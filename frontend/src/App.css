@@ -301,9 +301,9 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px dashed var(--md-outline-variant);
+  border: 1.5px dashed var(--md-outline-variant);
   border-radius: var(--md-radius-xl);
-  background-color: var(--md-surface);
+  background-color: var(--md-surface-container-low);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
   box-shadow: var(--md-elevation-1);
@@ -311,7 +311,7 @@ body {
 
 #label-file-upload:hover {
   border-color: var(--md-primary);
-  background-color: rgba(18, 93, 208, 0.06);
+  background-color: var(--md-surface-container-high);
   box-shadow: var(--md-elevation-2);
 }
 
