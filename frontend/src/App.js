@@ -3,7 +3,7 @@ import './App.css';
 import { storage, db } from './firebaseConfig';
 import { ref, uploadBytesResumable } from "firebase/storage";
 import { doc, onSnapshot, deleteDoc, updateDoc } from "firebase/firestore";
-import logo from './studyspark-logo.png';
+
 import SummaryCard from './components/SummaryCard';
 import Flashcard from './components/Flashcard';
 import Quiz from './components/Quiz';
@@ -216,7 +216,7 @@ function App() {
       <header className="app-header">
         <div className="logo-container">
           <span className="app-wordmark">
-            <img src={logo} alt="StudySpark Logo" className="header-logo-icon" />
+            <img src={process.env.PUBLIC_URL + '/favicon.png'} alt="StudySpark Logo" className="header-logo-icon" />
             <span className="logo-study">Study</span>
             <span className="logo-spark">Spark</span>
           </span>
