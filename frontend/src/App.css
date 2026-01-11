@@ -1695,8 +1695,11 @@ body {
 }
 
 .app-footer .heart {
-  color: var(--md-primary);
-  font-style: normal;
+  color: #FF2E63;
+  /* Vibrant Pink/Red */
+  font-size: 18px;
+  vertical-align: middle;
+  margin: 0 4px;
 }
 
 /* =========================================
