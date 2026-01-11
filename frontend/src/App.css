@@ -149,7 +149,7 @@ body {
   background-color: var(--md-surface);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   padding: 0 var(--md-spacing-lg);
   /* Flat surface - no shadow */
 }
@@ -157,7 +157,6 @@ body {
 .logo-container {
   display: flex;
   align-items: center;
-  justify-content: center;
 }
 
 .app-wordmark {
@@ -187,8 +186,6 @@ body {
 
 /* Header Actions Container */
 .header-actions {
-  position: absolute;
-  right: var(--md-spacing-lg);
   display: flex;
   align-items: center;
   gap: var(--md-spacing-sm);
@@ -424,21 +421,33 @@ body {
   z-index: 5;
 }
 
-/* Upload Button - Filled MD3 */
+/* Upload Button - Filled MD3 Spark Style */
 .upload-button {
   margin-top: var(--md-spacing-2xl);
   background-color: var(--md-primary);
   color: var(--md-on-primary);
   border: none;
-  padding: var(--md-spacing-md) var(--md-spacing-2xl);
+  min-height: 48px;
+  padding: 0 var(--md-spacing-2xl);
   font-family: var(--md-font-display);
   font-size: 14px;
   font-weight: 500;
   border-radius: var(--md-radius-full);
   cursor: pointer;
   box-shadow: var(--md-elevation-1);
-  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
   letter-spacing: 0.1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-spacing-sm);
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-button .btn-icon {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
 .upload-button:hover {
@@ -455,6 +464,43 @@ body {
   color: var(--md-on-surface-variant);
   cursor: not-allowed;
   box-shadow: none;
+}
+
+/* Spark Active Animations */
+.upload-button.spark-active {
+  background: linear-gradient(135deg, var(--md-primary) 0%, #0F4FAB 100%);
+  animation: sparkGlow 2s infinite alternate ease-in-out;
+}
+
+.upload-button.spark-active .btn-icon {
+  animation: boltPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes boltPulse {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+
+  50% {
+    transform: scale(1.2) rotate(5deg);
+    filter: brightness(1.5) drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+  }
+
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes sparkGlow {
+  0% {
+    box-shadow: 0 0 5px rgba(18, 93, 208, 0.2), var(--md-elevation-2);
+  }
+
+  100% {
+    box-shadow: 0 0 20px rgba(116, 214, 241, 0.6), var(--md-elevation-4);
+  }
 }
 
 /* Upload Progress */
@@ -700,39 +746,6 @@ body {
   flex-shrink: 0;
 }
 
-/* Status Pills - Redesigned */
-.status-pills-container {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border-radius: var(--md-radius-full);
-  font-size: 12px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.status-pill.ready {
-  background-color: var(--md-success-container);
-  color: var(--md-on-success);
-}
-
-.status-pill.pending {
-  background-color: var(--md-surface-container-high);
-  color: var(--md-on-surface-variant);
-}
-
-.status-pill svg {
-  width: 14px;
-  height: 14px;
-  flex-shrink: 0;
-}
 
 /* Legacy status-chips compatibility */
 .status-chips {
@@ -830,6 +843,12 @@ body {
 /* Custom Scrollbar Styling */
 .summary-text-content.scrollable::-webkit-scrollbar {
   width: 8px;
+}
+
+.summary-list {
+  margin: 0;
+  padding-left: 24px;
+  list-style-type: disc;
 }
 
 .summary-text-content.scrollable::-webkit-scrollbar-track {
@@ -1897,6 +1916,19 @@ body {
   .generate-feature-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .summary-list {
+    padding-left: 16px;
+  }
+
+  .results-header {
+    margin-bottom: var(--md-spacing-lg);
+    padding-bottom: var(--md-spacing-sm);
+  }
+
+  .results-filename {
+    font-size: 13px;
   }
 }
 

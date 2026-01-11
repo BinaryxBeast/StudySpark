@@ -8,7 +8,8 @@ import SummaryCard from './components/SummaryCard';
 import Flashcard from './components/Flashcard';
 import Quiz from './components/Quiz';
 import ThemeToggle from './components/ThemeToggle';
-
+import FileSelected from './components/FileSelected';
+import ProcessingIndicator from './components/ProcessingIndicator';
 
 
 function App() {
@@ -215,6 +216,7 @@ function App() {
       <header className="app-header">
         <div className="logo-container">
           <span className="app-wordmark">
+            <img src={logo} alt="StudySpark Logo" className="header-logo-icon" />
             <span className="logo-study">Study</span>
             <span className="logo-spark">Spark</span>
           </span>
@@ -227,10 +229,10 @@ function App() {
             </button>
           )}
         </div>
-      </header>
+      </header >
 
       {/* Main Content */}
-      <main className="main-content">
+      < main className="main-content" >
         {!data ? (
           <div className="landing-section">
             {/* Hero Section */}
@@ -251,37 +253,18 @@ function App() {
               <label id="label-file-upload" htmlFor="input-file-upload" className={dragActive ? "drag-active" : ""}>
                 <div className="upload-card-content">
                   {!file ? (
-                    <>
+                    <React.Fragment>
                       <div className={`upload-icon-wrapper ${dragActive ? 'pulse' : ''}`}>
-                        {/* Material Upload Icon - Rounded */}
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM14 13V17H10V13H7L12 8L17 13H14Z" fill="#125DD0" />
                         </svg>
                       </div>
                       <p className="upload-text">Drag & drop PDF here</p>
-                      <p className="upload-helper-combined">Max file size: 10 MB · PDF only</p>
+                      <p className="upload-helper-combined">Max file size: 10 MB - PDF only</p>
                       <p className="upload-reassurance">Works with handwritten notes, textbooks & slides</p>
-                    </>
+                    </React.Fragment>
                   ) : (
-                    <>
-                      <div className="upload-icon-wrapper file-selected-icon">
-                        {/* Document Icon */}
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM16 18H8V16H16V18ZM16 14H8V12H16V14ZM13 9V3.5L18.5 9H13Z" fill="#125DD0" />
-                        </svg>
-                      </div>
-                      <p className="file-name-selected">{file.name}</p>
-                      <div className="file-change-hint">
-                        {uploadStatus !== 'analyzing' && uploadStatus !== 'uploading' && uploadStatus !== 'success' && (
-                          <>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '4px' }}>
-                              <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="#125DD0" />
-                            </svg>
-                            Change file
-                          </>
-                        )}
-                      </div>
-                    </>
+                    <FileSelected fileName={file.name} uploadStatus={uploadStatus} />
                   )}
                 </div>
               </label>
@@ -295,25 +278,15 @@ function App() {
                     <div className="progress-bar" style={{ width: `${uploadProgress}%` }}></div>
                     <span className="progress-text">{Math.round(uploadProgress)}% Uploaded</span>
                   </div>
-                ) : uploadStatus === 'success' ? (
-                  <div className="success-container fade-in">
-                    <svg className="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                      <circle className="checkmark__circle" cx="26" cy="26" r="25" fill="none" />
-                      <path className="checkmark__check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-                    </svg>
-                    <span className="success-text">Upload Complete</span>
-                  </div>
-                ) : uploadStatus === 'analyzing' ? (
-                  <div className="analyzing-container fade-in">
-                    <div className="analyzing-loader"></div>
-                    <p className="analyzing-text">Analyzing PDF & Generating Summary...</p>
-                    <p className="analyzing-subtext">This usually takes 10-20 seconds.</p>
-                  </div>
+                ) : uploadStatus === 'success' || uploadStatus === 'analyzing' ? (
+                  <ProcessingIndicator status={uploadStatus === 'success' ? 'complete' : 'analyzing'} />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     {uploadStatus === 'error' && <p className="error-message shake">{errorMessage}</p>}
-                    <button className="upload-button" onClick={handleUploadClick}>
-                      {uploadStatus === 'error' ? 'Retry Upload' : 'Generate Study Guide'}
+                    <button className={`upload-button ${uploadStatus !== 'idle' && uploadStatus !== 'error' ? 'spark-active' : ''}`} onClick={handleUploadClick}>
+                      <span className="material-symbols-rounded btn-icon">bolt</span>
+                      {uploadStatus === 'error' ? 'Retry Upload' :
+                        (uploadStatus === 'uploading' || uploadStatus === 'success' || uploadStatus === 'analyzing' ? 'Sparking your study guide...' : 'Spark')}
                     </button>
                   </div>
                 )}
@@ -332,32 +305,6 @@ function App() {
                 </svg>
                 {file?.name || 'Your uploaded document'}
               </p>
-              <div className="status-pills-container">
-                <span className={`status-pill ${data.summary ? 'ready' : 'pending'}`}>
-                  {data.summary ? (
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
-                  )}
-                  Summary
-                </span>
-                <span className={`status-pill ${data.flashcards ? 'ready' : 'pending'}`}>
-                  {data.flashcards ? (
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
-                  )}
-                  Flashcards
-                </span>
-                <span className={`status-pill ${data.quiz ? 'ready' : 'pending'}`}>
-                  {data.quiz ? (
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" /></svg>
-                  )}
-                  Quiz
-                </span>
-              </div>
             </div>
 
 
@@ -559,15 +506,16 @@ function App() {
             )}
           </div>
 
-        )}
-      </main>
+        )
+        }
+      </main >
 
       {/* Footer with Divider */}
-      <footer className="app-footer">
+      < footer className="app-footer" >
         <div className="footer-divider"></div>
-        <p>Made with <span className="heart">❤️</span> by <strong>Team Genesis</strong></p>
-      </footer>
-    </div>
+        <p>Made with <span className="material-icons heart">favorite</span> by <strong>Team Genesis</strong></p>
+      </footer >
+    </div >
   );
 }
 

@@ -12,7 +12,7 @@ const SummaryCard = ({ summary }) => {
             <div className="summary-card cheat-sheet-mode">
                 <div className="summary-content">
                     <div className="summary-text-content scrollable">
-                        <ul style={{ margin: 0, paddingLeft: '24px' }}>
+                        <ul className="summary-list">
                             {lines.map((line, index) => (
                                 <li key={index} className="summary-list-item">{line}</li>
                             ))}

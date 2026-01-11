@@ -1,0 +1,105 @@
+.file-selected-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--md-spacing-xl);
+    animation: fileSelectedIntro 200ms cubic-bezier(0.2, 0, 0, 1);
+    text-align: center;
+}
+
+.file-selected-icon-stack {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--md-primary-container);
+    border-radius: var(--md-radius-xl);
+    margin-bottom: var(--md-spacing-lg);
+    color: var(--md-primary);
+}
+
+.file-selected-icon-stack .file-icon {
+    font-size: 40px;
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 40;
+}
+
+.success-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 28px;
+    height: 28px;
+    background-color: var(--md-primary);
+    /* Tonal primary variant */
+    border: 3px solid var(--md-surface);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--md-on-primary);
+    box-shadow: var(--md-elevation-1);
+}
+
+.success-badge .check-icon {
+    font-size: 18px;
+    font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 20;
+}
+
+.file-selected-text {
+    margin-bottom: var(--md-spacing-md);
+}
+
+.file-selected-primary {
+    font-family: var(--md-font-display);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--md-on-surface);
+    margin: 0 0 4px 0;
+}
+
+.file-selected-secondary {
+    font-family: var(--md-font-body);
+    font-size: 14px;
+    color: var(--md-on-surface-variant);
+    margin: 0;
+}
+
+.file-name-chip {
+    background-color: var(--md-surface-variant, var(--md-surface-container-high));
+    padding: 6px 16px;
+    border-radius: var(--md-radius-full);
+    display: inline-flex;
+    align-items: center;
+    max-width: 240px;
+    margin-top: var(--md-spacing-sm);
+}
+
+.file-name-text {
+    font-family: var(--md-font-body);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--md-on-surface-variant);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@keyframes fileSelectedIntro {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Dark mode adjustment for success badge border */
+[data-theme="dark"] .success-badge {
+    border-color: var(--md-surface-container);
+}
