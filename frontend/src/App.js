@@ -97,7 +97,7 @@ function App() {
       },
       () => {
         // Upload completed successfully
-        setUploadStatus('success');
+        setUploadStatus('analyzing');
         setUploadProgress(100);
 
         // 2. Start listening immediately - UI handles the "Success -> Generating" transition
