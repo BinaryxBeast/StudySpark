@@ -215,7 +215,7 @@ function App() {
       {/* Top App Bar - MD3 Flat Surface */}
       <header className="app-header">
         <div className="logo-container">
-          <span className="app-wordmark">
+          <span className="app-wordmark" onClick={() => window.location.reload()}>
             <img src={process.env.PUBLIC_URL + '/favicon.png'} alt="StudySpark Logo" className="header-logo-icon" />
             <span className="logo-study">Study</span>
             <span className="logo-spark">Spark</span>
