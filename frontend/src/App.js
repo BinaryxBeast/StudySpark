@@ -284,7 +284,7 @@ function App() {
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     {uploadStatus === 'error' && <p className="error-message shake">{errorMessage}</p>}
                     <button className={`upload-button ${uploadStatus !== 'idle' && uploadStatus !== 'error' ? 'spark-active' : ''}`} onClick={handleUploadClick}>
-                      <span className="material-symbols-rounded btn-icon">bolt</span>
+                      <span className="material-symbols-rounded btn-icon">electric_bolt</span>
                       {uploadStatus === 'error' ? 'Retry Upload' :
                         (uploadStatus === 'uploading' || uploadStatus === 'success' || uploadStatus === 'analyzing' ? 'Sparking your study guide...' : 'Spark')}
                     </button>
