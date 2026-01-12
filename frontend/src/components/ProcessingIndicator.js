@@ -35,7 +35,7 @@ const ProcessingIndicator = ({ status }) => {
                 <span
                     className={`material-symbols-rounded processing-bolt ${status === 'analyzing' ? 'pulsing' : ''} ${isComplete ? 'activated' : ''}`}
                 >
-                    bolt
+                    electric_bolt
                 </span>
             </div>
 
