@@ -20,7 +20,7 @@
 .processing-bolt {
     font-size: 40px;
     color: var(--md-primary);
-    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 40;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 40;
     transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 

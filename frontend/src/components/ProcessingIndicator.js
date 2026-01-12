@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './ProcessingIndicator.css';
 
-const ProcessingIndicator = ({ status }) => {
+const ProcessingIndicator = ({ status, onComplete }) => {
     const [progress, setProgress] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
 
@@ -24,10 +24,17 @@ const ProcessingIndicator = ({ status }) => {
             // Jump to 100% when complete
             setProgress(100);
             setTimeout(() => setIsComplete(true), 300);
+
+            // Wait a bit for the user to see the success message, then trigger completion
+            if (onComplete) {
+                setTimeout(() => {
+                    onComplete();
+                }, 1500);
+            }
         }
 
         return () => clearInterval(interval);
-    }, [status, isComplete]);
+    }, [status, isComplete, onComplete]);
 
     return (
         <div className="processing-indicator-container">

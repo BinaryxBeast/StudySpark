@@ -38,6 +38,9 @@
   --md-success: #1E6F42;
   --md-success-container: #A8F5C0;
   --md-on-success: #FFFFFF;
+  --md-on-success-container: #051F11;
+
+  --md-on-error-container: #410E0B;
 
   /* Elevation Shadows - MD3 */
   --md-elevation-1: 0px 1px 2px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15);
@@ -100,6 +103,9 @@
   --md-success: #8DD9A0;
   --md-success-container: #005225;
   --md-on-success: #C0EFCD;
+  --md-on-success-container: #C0EFCD;
+
+  --md-on-error-container: #FFDAD6;
 
   /* Elevation Shadows - Dark Mode (more subtle) */
   --md-elevation-1: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px rgba(0, 0, 0, 0.3);
@@ -448,7 +454,7 @@ body {
 
 .upload-button .btn-icon {
   font-size: 20px;
-  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
 .upload-button:hover {
@@ -1439,12 +1445,100 @@ body {
 
 .feedback-message.positive {
   background-color: var(--md-success-container);
-  color: #137333;
+  color: var(--md-on-success-container);
 }
 
 .feedback-message.negative {
   background-color: var(--md-error-container);
-  color: #c5221f;
+  color: var(--md-on-error-container);
+}
+
+/* Long Answer Questions */
+.long-question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--md-spacing-sm);
+  color: var(--md-on-surface-variant);
+  font-size: 14px;
+}
+
+.question-marks {
+  font-weight: 500;
+  background: var(--md-surface-container-highest);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.answer-key-details {
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-radius-md);
+  overflow: hidden;
+}
+
+.answer-key-details summary {
+  padding: var(--md-spacing-md);
+  background-color: var(--md-surface-container-low);
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--md-primary);
+  list-style: none;
+  /* Hide default triangle */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.answer-key-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.answer-key-details summary::after {
+  content: 'expand_more';
+  font-family: 'Material Symbols Rounded';
+  font-size: 20px;
+  transition: transform 0.2s ease;
+}
+
+.answer-key-details[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.answer-key-content {
+  padding: var(--md-spacing-lg);
+  background-color: var(--md-surface);
+  border-top: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface);
+  line-height: 1.6;
+}
+
+/* Probable Questions */
+.probable-question-card {
+  border-left: 4px solid var(--md-outline-variant);
+}
+
+.question-badge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-high {
+  background-color: var(--md-error-container);
+  color: var(--md-on-error-container);
+  border: 1px solid var(--md-error);
+}
+
+.badge-medium {
+  background-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border: 1px solid var(--md-primary);
 }
 
 /* Quiz Footer */

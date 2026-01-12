@@ -263,8 +263,10 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
     const requestFlashcards = newData.requestFlashcards && !previousData.requestFlashcards;
     const requestQuiz = newData.requestQuiz && !previousData.requestQuiz;
     const requestDetailedSummary = newData.requestDetailedSummary && !previousData.requestDetailedSummary;
+    const requestLongQuestions = newData.requestLongQuestions && !previousData.requestLongQuestions;
+    const requestProbableQuestions = newData.requestProbableQuestions && !previousData.requestProbableQuestions;
 
-    if (!requestFlashcards && !requestQuiz && !requestDetailedSummary) {
+    if (!requestFlashcards && !requestQuiz && !requestDetailedSummary && !requestLongQuestions && !requestProbableQuestions) {
         return; // No new requests
     }
 
@@ -276,6 +278,8 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
         if (requestFlashcards) errorUpdate.flashcards = { error: "File source missing. Please re-upload." };
         if (requestQuiz) errorUpdate.quiz = { error: "File source missing. Please re-upload." };
         if (requestDetailedSummary) errorUpdate.summary = { error: "File source missing. Please re-upload." };
+        if (requestLongQuestions) errorUpdate.longQuestions = { error: "File source missing. Please re-upload." };
+        if (requestProbableQuestions) errorUpdate.probableQuestions = { error: "File source missing. Please re-upload." };
 
         await docRef.set(errorUpdate, { merge: true });
         return logger.error("File URI missing for generation request");
@@ -437,6 +441,108 @@ OUTPUT FORMAT (strict JSON):
             }
         }
 
+        if (requestLongQuestions) {
+            try {
+                logger.log("Generating Long Questions...");
+                const prompt = `
+                IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
+                You MUST:
+                - Read and extract text from ALL images in the PDF
+                - Process handwritten text using OCR
+                - Handle both printed and handwritten content
+                - Analyze all visual content including diagrams, equations, and annotations
+                - If the PDF contains only images, treat them as the primary source material
+                
+                You are a strict, exam-focused study assistant for Indian University Students.
+                I will provide you with a PDF (study material) which may be handwritten, typed, or scanned.
+
+                Your task is to generate **10 LONG ANSWER QUESTIONS (5 Marks each)** based on the content.
+                
+                GUIDELINES:
+                1. **Context**: These questions represent descriptive questions common in Indian engineering/science curricula.
+                2. **Structure**: They should feel academic, structured, and detailed.
+                3. **Content**: Focus on "Derive", "Explain in detail", "Compare and Contrast", "Discuss the construction and working".
+                
+                OUTPUT FORMAT JSON (strict):
+                {
+                  "longQuestions": [
+                    {
+                      "question": "The actual question text",
+                      "answerKey": "Key points that must be included in the answer (bullet points)",
+                      "marks": 5
+                    }
+                  ]
+                }
+                `;
+
+                const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
+                const output = JSON.parse(result.response.text());
+                batch.update(docRef, { longQuestions: output.longQuestions, requestLongQuestions: false });
+                hasUpdates = true;
+            } catch (error) {
+                logger.error("Error generating long questions:", error);
+                batch.update(docRef, {
+                    requestLongQuestions: false,
+                    longQuestionsError: error.message.includes('429')
+                        ? 'Rate limit reached. Please try again in a few moments.'
+                        : 'Failed to generate long questions. Please try again.'
+                });
+                hasUpdates = true;
+            }
+        }
+
+
+
+        if (requestProbableQuestions) {
+            try {
+                logger.log("Generating Probable Questions...");
+                const prompt = `
+                IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
+                You MUST:
+                - Read and extract text from ALL images in the PDF
+                - Process handwritten text using OCR
+                - Handle both printed and handwritten content
+                - Analyze all visual content including diagrams, equations, and annotations
+                - If the PDF contains only images, treat them as the primary source material
+                
+                You are a strict, exam-focused study assistant.
+                I will provide you with a PDF (study material) which may be handwritten, typed, or scanned.
+
+                Your task is to identify or generate **10 MOST PROBABLE QUESTIONS** that are likely to appear in an exam.
+
+                STRATEGY:
+                1. **Search**: First, look for explicitly marked questions in the content (e.g., "Imp", "PYQ", "2023", "Important").
+                2. **Generate**: If no explicit questions are found, generate questions based on the most critical concepts, repeated themes, or core definitions.
+                3. **Prioritize**: Focus on "Repeated" or "High Weightage" topics.
+
+                OUTPUT FORMAT JSON (strict):
+                {
+                  "probableQuestions": [
+                    {
+                      "question": "The question text",
+                      "probability": "High" | "Medium",
+                      "reason": "Why this is likely (e.g., 'Marked as Important', 'Core Concept', 'Frequent PYQ')"
+                    }
+                  ]
+                }
+                `;
+
+                const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
+                const output = JSON.parse(result.response.text());
+                batch.update(docRef, { probableQuestions: output.probableQuestions, requestProbableQuestions: false });
+                hasUpdates = true;
+            } catch (error) {
+                logger.error("Error generating probable questions:", error);
+                batch.update(docRef, {
+                    requestProbableQuestions: false,
+                    probableQuestionsError: error.message.includes('429')
+                        ? 'Rate limit reached. Please try again in a few moments.'
+                        : 'Failed to generate probable questions. Please try again.'
+                });
+                hasUpdates = true;
+            }
+        }
+
         if (requestQuiz) {
             try {
                 logger.log("Generating Quiz...");
@@ -504,7 +610,9 @@ OUTPUT FORMAT (strict JSON):
             criticalError: error.message,
             requestFlashcards: false,
             requestQuiz: false,
-            requestDetailedSummary: false
+            requestDetailedSummary: false,
+            requestLongQuestions: false,
+            requestProbableQuestions: false
         }, { merge: true });
     }
 });

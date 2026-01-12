@@ -14,7 +14,9 @@ import ProcessingIndicator from './components/ProcessingIndicator';
 
 function App() {
   const [file, setFile] = useState(null);
+
   const [data, setData] = useState(null);
+  const [showResults, setShowResults] = useState(false);
 
   // Theme State
   const [theme, setTheme] = useState('light');
@@ -30,6 +32,9 @@ function App() {
   // Local loading states to prevent duplicate mobile taps
   const [generatingFlashcards, setGeneratingFlashcards] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const [generatingLongQuestions, setGeneratingLongQuestions] = useState(false);
+  const [generatingProbableQuestions, setGeneratingProbableQuestions] = useState(false);
+  const [activeQuizTab, setActiveQuizTab] = useState('mcq');
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -46,7 +51,13 @@ function App() {
     if (data?.quiz || data?.quizError) {
       setGeneratingQuiz(false);
     }
-  }, [data?.flashcards, data?.flashcardsError, data?.quiz, data?.quizError]);
+    if (data?.longQuestions || data?.longQuestionsError) {
+      setGeneratingLongQuestions(false);
+    }
+    if (data?.probableQuestions || data?.probableQuestionsError) {
+      setGeneratingProbableQuestions(false);
+    }
+  }, [data?.flashcards, data?.flashcardsError, data?.quiz, data?.quizError, data?.longQuestions, data?.longQuestionsError, data?.probableQuestions, data?.probableQuestionsError]);
 
   // Toggle theme function
   const toggleTheme = () => {
@@ -64,7 +75,9 @@ function App() {
     // 0. Reset State & Delete Old Doc
     setUploadStatus('uploading');
     setUploadProgress(0);
+
     setErrorMessage(null);
+    setShowResults(false);
     setSummaryMode(mode); // Ensure state reflects upload mode
 
     const docId = file.name.replace(".pdf", "");
@@ -122,6 +135,12 @@ function App() {
               setData(docData);
               // If we have data, we are done uploading/processing
               setUploadStatus('complete');
+
+              // Auto-start quiz generation if not already present or requested
+              if (!docData.quiz && !docData.requestQuiz && !docData.quizError) {
+                updateDoc(doc(db, "study_results", docId), { requestQuiz: true })
+                  .catch((err) => console.error("Error auto-starting quiz:", err));
+              }
             } else {
               // Document exists but no summary yet -> We are analyzing
               setUploadStatus('analyzing');
@@ -190,6 +209,8 @@ function App() {
     // Prevent duplicate requests on mobile
     if (feature === 'flashcards' && generatingFlashcards) return;
     if (feature === 'quiz' && generatingQuiz) return;
+    if (feature === 'long' && generatingLongQuestions) return;
+    if (feature === 'probable' && generatingProbableQuestions) return;
 
     const docId = file.name.replace(".pdf", "");
     const docRef = doc(db, "study_results", docId);
@@ -201,12 +222,20 @@ function App() {
       } else if (feature === 'quiz') {
         setGeneratingQuiz(true);
         await updateDoc(docRef, { requestQuiz: true });
+      } else if (feature === 'long') {
+        setGeneratingLongQuestions(true);
+        await updateDoc(docRef, { requestLongQuestions: true });
+      } else if (feature === 'probable') {
+        setGeneratingProbableQuestions(true);
+        await updateDoc(docRef, { requestProbableQuestions: true });
       }
     } catch (error) {
       console.error("Error requesting feature:", error);
       // Reset loading state on error
       if (feature === 'flashcards') setGeneratingFlashcards(false);
       if (feature === 'quiz') setGeneratingQuiz(false);
+      if (feature === 'long') setGeneratingLongQuestions(false);
+      if (feature === 'probable') setGeneratingProbableQuestions(false);
     }
   };
 
@@ -221,10 +250,11 @@ function App() {
             <span className="logo-spark">Spark</span>
           </span>
         </div>
+
         <div className="header-actions">
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
-          {data && (
-            <button className="reset-button" onClick={() => { setData(null); setFile(null); setUploadStatus('idle'); setUploadProgress(0); setErrorMessage(null); }}>
+          {showResults && (
+            <button className="reset-button" onClick={() => { setData(null); setFile(null); setUploadStatus('idle'); setUploadProgress(0); setErrorMessage(null); setShowResults(false); }}>
               Upload Another
             </button>
           )}
@@ -233,7 +263,7 @@ function App() {
 
       {/* Main Content */}
       < main className="main-content" >
-        {!data ? (
+        {!showResults ? (
           <div className="landing-section">
             {/* Hero Section */}
             <div className="hero-section">
@@ -278,8 +308,11 @@ function App() {
                     <div className="progress-bar" style={{ width: `${uploadProgress}%` }}></div>
                     <span className="progress-text">{Math.round(uploadProgress)}% Uploaded</span>
                   </div>
-                ) : uploadStatus === 'success' || uploadStatus === 'analyzing' ? (
-                  <ProcessingIndicator status={uploadStatus === 'success' ? 'complete' : 'analyzing'} />
+                ) : uploadStatus === 'success' || uploadStatus === 'analyzing' || uploadStatus === 'complete' ? (
+                  <ProcessingIndicator
+                    status={uploadStatus === 'success' ? 'complete' : uploadStatus === 'complete' ? 'complete' : 'analyzing'}
+                    onComplete={() => setShowResults(true)}
+                  />
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     {uploadStatus === 'error' && <p className="error-message shake">{errorMessage}</p>}
@@ -441,65 +474,129 @@ function App() {
             </div>
 
 
-            {data.quiz ? (
-              <Quiz questions={data.quiz} />
+            {data.quiz || data.longQuestions || data.probableQuestions ? (
+              <Quiz
+                questions={data.quiz}
+                longQuestions={data.longQuestions}
+                probableQuestions={data.probableQuestions}
+                onGenerateFeature={handleGenerateFeature}
+                generatingState={{
+                  quiz: generatingQuiz,
+                  long: generatingLongQuestions,
+                  probable: generatingProbableQuestions
+                }}
+                requestsState={{
+                  quiz: data.requestQuiz,
+                  long: data.requestLongQuestions,
+                  probable: data.requestProbableQuestions
+                }}
+                errorsState={{
+                  quiz: data.quizError,
+                  long: data.longQuestionsError,
+                  probable: data.probableQuestionsError
+                }}
+              />
             ) : (
               <div className="results-section quiz-section-pending">
-                <h3>Interactive Quiz</h3>
+                <h3>Spark Questions</h3>
+
+                {/* Navigation Pills */}
+                <div className="spark-nav-pills" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'mcq', label: 'MCQs' },
+                    { id: 'long', label: 'Long Answers' },
+                    { id: 'probable', label: 'Most Probable Questions' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveQuizTab(tab.id)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        border: activeQuizTab === tab.id ? 'none' : '1px solid var(--md-outline-variant)',
+                        background: activeQuizTab === tab.id ? 'var(--md-primary-container)' : 'transparent',
+                        color: activeQuizTab === tab.id ? 'var(--md-on-primary-container)' : 'var(--md-on-surface-variant)',
+                        fontFamily: 'var(--md-font-display)',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        outline: 'none'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
                 <div className="feature-generation-section">
-                  {data.requestQuiz ? (
-                    <>
-                      <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
-                      <p className="loading-text">Generating quiz...</p>
-                    </>
-                  ) : data.quizError ? (
-                    <>
-                      <p className="error-message" style={{ color: 'var(--md-error)', marginBottom: '12px' }}>
-                        {data.quizError}
-                      </p>
-                      <button
-                        className="generate-feature-btn generate-quiz-btn"
-                        onClick={() => handleGenerateFeature('quiz')}
-                        disabled={generatingQuiz}
-                      >
-                        🔄 Retry Quiz
-                      </button>
-                    </>
+                  {activeQuizTab === 'mcq' ? (
+                    data.requestQuiz ? (
+                      <>
+                        <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
+                        <p className="loading-text">Generating quiz...</p>
+                      </>
+                    ) : data.quizError ? (
+                      <>
+                        <p className="error-message" style={{ color: 'var(--md-error)', marginBottom: '12px' }}>
+                          {data.quizError}
+                        </p>
+                        <button
+                          className="generate-feature-btn generate-quiz-btn"
+                          onClick={() => handleGenerateFeature('quiz')}
+                          disabled={generatingQuiz}
+                        >
+                          🔄 Retry Quiz
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Quiz Value Preview */}
+                        <div className="quiz-value-preview">
+                          <div className="quiz-value-item">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+                            </svg>
+                            <span>5 MCQs</span>
+                          </div>
+                          <div className="quiz-value-item">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+                            </svg>
+                            <span>Instant score</span>
+                          </div>
+                          <div className="quiz-value-item">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                            </svg>
+                            <span>Exam-focused</span>
+                          </div>
+                        </div>
+                        <p className="feature-description">Challenge yourself with a quick quiz based on your notes.</p>
+                        <button
+                          className="generate-feature-btn generate-quiz-btn"
+                          onClick={() => handleGenerateFeature('quiz')}
+                          disabled={generatingQuiz}
+                        >
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z" />
+                          </svg>
+                          Start Quiz
+                        </button>
+                      </>
+                    )
                   ) : (
-                    <>
-                      {/* Quiz Value Preview */}
-                      <div className="quiz-value-preview">
-                        <div className="quiz-value-item">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                          </svg>
-                          <span>5 MCQs</span>
-                        </div>
-                        <div className="quiz-value-item">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
-                          </svg>
-                          <span>Instant score</span>
-                        </div>
-                        <div className="quiz-value-item">
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                          </svg>
-                          <span>Exam-focused</span>
-                        </div>
-                      </div>
-                      <p className="feature-description">Challenge yourself with a quick quiz based on your notes.</p>
-                      <button
-                        className="generate-feature-btn generate-quiz-btn"
-                        onClick={() => handleGenerateFeature('quiz')}
-                        disabled={generatingQuiz}
-                      >
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C7.8 12.16 7 10.63 7 9c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.63-.8 3.16-2.15 4.1z" />
-                        </svg>
-                        Start Quiz
-                      </button>
-                    </>
+                    <div style={{ padding: '32px', textAlign: 'center', color: 'var(--md-on-surface-variant)', background: 'var(--md-surface)', borderRadius: '12px', border: '1px dashed var(--md-outline-variant)' }}>
+                      <span className="material-symbols-rounded" style={{ fontSize: '48px', color: 'var(--md-primary)', opacity: 0.5, marginBottom: '16px', display: 'block', margin: '0 auto' }}>
+                        {activeQuizTab === 'long' ? 'description' : 'psychology'}
+                      </span>
+                      <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: 500 }}>
+                        {activeQuizTab === 'long' ? 'Long Answer Questions' : 'Most Probable Questions'}
+                      </h3>
+                      <p style={{ fontSize: '14px', opacity: 0.8, maxWidth: '300px', margin: '0 auto' }}>
+                        This feature is coming soon! Check back later for {activeQuizTab === 'long' ? 'detailed long-form questions' : 'curated high-probability exam questions'}.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
