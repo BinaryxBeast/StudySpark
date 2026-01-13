@@ -265,8 +265,8 @@ function App() {
       < main className="main-content" >
         {!showResults ? (
           <div className="landing-section">
-            {/* Hero Section */}
-            <div className="hero-section">
+            {/* Hero Section - Animates away when processing */}
+            <div className={`hero-section ${uploadStatus !== 'idle' ? 'hidden' : ''}`}>
               <h1 className="hero-headline">Welcome to StudySpark</h1>
               <p className="hero-tagline">Your Revision Partner</p>
               <div className="trust-badge">
