@@ -647,3 +647,5 @@ exports.cleanupOldFiles = onSchedule("every 60 minutes", async (event) => {
 
     logger.log(`Cleanup complete. Deleted ${deletedCount} files.`);
 });
+
+// Force release v2
