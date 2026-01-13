@@ -1,0 +1,89 @@
+/* --- MARKDOWN STYLES --- */
+.markdown-body {
+    font-family: var(--md-font-body);
+    color: var(--md-on-surface);
+    line-height: 1.7;
+    font-size: 15px;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+    margin-top: 1.25em;
+    margin-bottom: 0.75em;
+    font-family: var(--md-font-display);
+    font-weight: 500;
+    color: var(--md-primary);
+    line-height: 1.3;
+}
+
+.markdown-body h2 {
+    font-size: 1.4rem;
+    border-bottom: 2px solid var(--md-surface-container-highest);
+    padding-bottom: 0.3em;
+    margin-top: 1.5em;
+}
+
+.markdown-body h3 {
+    font-size: 1.15rem;
+    color: var(--md-on-surface);
+    font-weight: 600;
+    margin-top: 1.2em;
+}
+
+.markdown-body p {
+    margin-bottom: 1em;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+.markdown-body li {
+    margin-bottom: 0.5em;
+    padding-left: 0.2em;
+}
+
+/* Make bold text pop with secondary color */
+.markdown-body strong {
+    color: var(--md-primary);
+    /* Changed from secondary to primary for consistency */
+    font-weight: 700;
+}
+
+.markdown-body blockquote {
+    border-left: 4px solid var(--md-primary);
+    background-color: var(--md-surface-container);
+    padding: 0.8em 1.2em;
+    border-radius: 0 var(--md-radius-sm) var(--md-radius-sm) 0;
+    color: var(--md-on-surface);
+    margin: 1.5em 0;
+    font-style: italic;
+}
+
+.markdown-body code {
+    background-color: var(--md-surface-container-highest);
+    padding: 0.2em 0.4em;
+    border-radius: 6px;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 0.9em;
+    color: var(--md-on-surface-variant);
+}
+
+.markdown-body hr {
+    height: 1px;
+    border: none;
+    background-color: var(--md-outline-variant);
+    margin: 2em 0;
+}
+
+/* Equations styling */
+.katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1em 0;
+    margin: 1em 0;
+}

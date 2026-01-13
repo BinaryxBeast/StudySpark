@@ -4,6 +4,7 @@
    Cyan Secondary (#74D6F1)
    Light & Dark Mode Support
    ========================================= */
+@import './markdown.css';
 
 /* MD3 Design Tokens */
 @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&family=Roboto:wght@400;500&display=swap');

@@ -1,10 +1,36 @@
 import React from 'react';
 import '../App.css';
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 const SummaryCard = ({ summary }) => {
     if (!summary) return null;
 
     // --- MODE 1: CHEAT SHEET (Array of strings) ---
+    // --- MODE 1: CHEAT SHEET (Markdown String or Array) ---
+    // If it's a string, we assume it's the new Markdown format
+    if (typeof summary.cheat_sheet === 'string') {
+        return (
+            <div className="summary-card cheat-sheet-mode markdown-mode">
+                <div className="summary-content">
+                    <div className="summary-text-content scrollable">
+                        <div className="markdown-body">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath]}
+                                rehypePlugins={[rehypeKatex]}
+                            >
+                                {summary.cheat_sheet}
+                            </ReactMarkdown>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Fallback for legacy Array format
     if (summary.cheat_sheet && Array.isArray(summary.cheat_sheet)) {
         const lines = summary.cheat_sheet;
 

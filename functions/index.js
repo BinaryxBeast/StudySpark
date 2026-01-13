@@ -131,38 +131,38 @@ You MUST:
 You are an expert exam-oriented study assistant.
 I will provide you with a PDF (study material) which may be handwritten, typed, or scanned.
 
-Your task is to generate an EXTREMELY SHORT revision cheat sheet using ONLY:
-- Keywords
-- Short hints
-- One-line memory triggers
-- Symbols, arrows, abbreviations (→, ⇒, ∴, ≠)
+Your task is to generate a **structured, easy-to-understand Cheat Sheet** in **Markdown format**.
+The goal is to provide short notes that are readable, logically grouped, and exam-ready.
 
-STRICT RULES:
-- NO explanations
-- NO paragraphs
-- NO full definitions
-- NO examples
-- NO filler text
-- Each point must be ≤ 8 words
-- Use bullet points only
-- Focus on what helps quick recall in exams
+**GUIDELINES:**
+1.  **Format**: Use Markdown.
+    *   Use \`### headings\` for sections.
+    *   Use \`*\` for bullet points.
+    *   Use \`**bold**\` for key terms and important emphasis.
+    *   Use LaTeX for formulas (e.g., $E = mc^2$).
+2.  **Content Style**:
+    *   **Short & Punchy**: Keep explanations concise but clear.
+    *   **Understandable**: Don't just list keywords; explain *relationships* briefly (e.g., "X increases because Y...").
+    *   **Grouped**: Organize by topic/concept.
+3.  **Structure**:
+    *   Start with **Basics / Definitions**.
+    *   Move to **Key Reactions / Formulas / Mechanisms**.
+    *   Include **Special Cases / Exceptions**.
+    *   Mention **Common Applications / Uses**.
+4.  **Math/Chemistry**:
+    *   Ensure all equations are formatted correctly in LaTeX between single dollar signs ($...$).
+    *   Example: $R-MgX + H_2O \\rightarrow RH + Mg(OH)X$.
 
-INCLUDE:
-- Core concepts only
-- Important formulas (if any)
-- Key terms that students often forget
-- Mnemonics where possible
-
-OUTPUT FORMAT JSON:
+**OUTPUT FORMAT JSON:**
 {
-  "cheat_sheet": [
-    "Topic: hint",
-    "Formula: symbol-based",
-    "Term → meaning hint",
-    "Trap / confusion point"
-  ]
+  "cheat_sheet": "MARKDOWN_STRING"
 }
-The output must feel like a LAST-MINUTE EXAM CHEAT SHEET.`;
+
+**IMPORTANT**:
+- The value of "cheat_sheet" MUST be a single string containing the entire Markdown content.
+- Do NOT return an array.
+- properly escape newlines and quotes in the JSON string.
+`;
         } else {
             prompt = `
 IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
