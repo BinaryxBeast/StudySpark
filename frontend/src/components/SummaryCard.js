@@ -51,70 +51,68 @@ const SummaryCard = ({ summary }) => {
 
     // --- MODE 2: DETAILED REVISION (Object with sections) ---
     if (summary.definitions || summary.must_revise || summary.important_questions) {
+
+        let detailedMarkdown = "";
+
+        // 1. Definitions
+        if (summary.definitions && summary.definitions.length > 0) {
+            detailedMarkdown += "## 📌 Important Definitions\n\n";
+            summary.definitions.forEach(item => {
+                detailedMarkdown += `- **${item.term}**: ${item.definition}\n`;
+            });
+            detailedMarkdown += "\n";
+        }
+
+        // 2. Must Revise
+        if (summary.must_revise && summary.must_revise.length > 0) {
+            detailedMarkdown += "## 🔥 Must Revise Concepts\n\n";
+            summary.must_revise.forEach(item => {
+                detailedMarkdown += `- **${item.concept}** — ${item.reason}\n`;
+            });
+            detailedMarkdown += "\n";
+        }
+
+        // 3. Important Questions
+        if (summary.important_questions && summary.important_questions.length > 0) {
+            detailedMarkdown += "## ❓ Most Important Questions\n\n";
+            summary.important_questions.forEach(item => {
+                const importanceBadge = item.importance ? `**[${item.importance}]** ` : "";
+                detailedMarkdown += `- ${importanceBadge}${item.question}\n`;
+            });
+            detailedMarkdown += "\n";
+        }
+
+        // 4. Exam Focus
+        if (summary.exam_focus && summary.exam_focus.length > 0) {
+            detailedMarkdown += "## 🎯 Exam Focus Strategy\n\n";
+            summary.exam_focus.forEach(item => {
+                detailedMarkdown += `- **${item.topic}**: ${item.strategy}\n`;
+            });
+            detailedMarkdown += "\n";
+        }
+
+        // 5. Common Mistakes
+        if (summary.common_mistakes && summary.common_mistakes.length > 0) {
+            detailedMarkdown += "## ⚠️ Common Mistakes\n\n";
+            summary.common_mistakes.forEach(item => {
+                detailedMarkdown += `- ❌ ${item.point}\n  ✅ **Correction**: ${item.correction}\n`;
+            });
+            detailedMarkdown += "\n";
+        }
+
         return (
-            <div className="summary-card detailed-mode">
-                <div className="detailed-content scrollable">
-                    {/* 1. Definitions */}
-                    {summary.definitions && summary.definitions.length > 0 && (
-                        <div className="detailed-section">
-                            <h4>📌 Important Definitions</h4>
-                            {summary.definitions.map((item, i) => (
-                                <div key={i} className="detailed-item">
-                                    <span className="term">{item.term}</span>: <span className="def">{item.definition}</span>
-                                </div>
-                            ))}
+            <div className="summary-card detailed-mode markdown-mode">
+                <div className="summary-content">
+                    <div className="summary-text-content scrollable">
+                        <div className="markdown-body">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath]}
+                                rehypePlugins={[rehypeKatex]}
+                            >
+                                {detailedMarkdown}
+                            </ReactMarkdown>
                         </div>
-                    )}
-
-                    {/* 2. Must Revise */}
-                    {summary.must_revise && summary.must_revise.length > 0 && (
-                        <div className="detailed-section">
-                            <h4>🔥 Must Revise Concepts</h4>
-                            {summary.must_revise.map((item, i) => (
-                                <div key={i} className="detailed-item">
-                                    <strong>{item.concept}</strong> — <span>{item.reason}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 3. Important Questions */}
-                    {summary.important_questions && summary.important_questions.length > 0 && (
-                        <div className="detailed-section">
-                            <h4>❓ Most Important Questions</h4>
-                            {summary.important_questions.map((item, i) => (
-                                <div key={i} className="detailed-item question-item">
-                                    <span className={`badge ${item.importance?.toLowerCase().replace(' ', '-')}`}>{item.importance}</span>
-                                    <span className="question-text">{item.question}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 4. Exam Focus */}
-                    {summary.exam_focus && summary.exam_focus.length > 0 && (
-                        <div className="detailed-section">
-                            <h4>🎯 Exam Focus Strategy</h4>
-                            {summary.exam_focus.map((item, i) => (
-                                <div key={i} className="detailed-item">
-                                    <strong>{item.topic}</strong>: {item.strategy}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* 5. Common Mistakes */}
-                    {summary.common_mistakes && summary.common_mistakes.length > 0 && (
-                        <div className="detailed-section">
-                            <h4>⚠️ Common Mistakes</h4>
-                            {summary.common_mistakes.map((item, i) => (
-                                <div key={i} className="detailed-item mistake-item">
-                                    <span className="mistake-point">❌ {item.point}</span>
-                                    <span className="mistake-correction">✅ {item.correction}</span>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                    </div>
                 </div>
             </div>
         );
