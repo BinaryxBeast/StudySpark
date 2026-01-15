@@ -362,7 +362,18 @@ const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, 
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => {
+                            setActiveTab(tab.id);
+                            if (tab.id === 'mcq' && !questions && !generatingState?.quiz && !requestsState?.quiz) {
+                                onGenerateFeature('quiz');
+                            }
+                            if (tab.id === 'long' && !longQuestions && !generatingState?.long && !requestsState?.long) {
+                                onGenerateFeature('long');
+                            }
+                            if (tab.id === 'probable' && !probableQuestions && !generatingState?.probable && !requestsState?.probable) {
+                                onGenerateFeature('probable');
+                            }
+                        }}
                         style={{
                             padding: '8px 16px',
                             borderRadius: '20px',

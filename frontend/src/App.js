@@ -541,7 +541,18 @@ function App() {
                     ].map(tab => (
                       <button
                         key={tab.id}
-                        onClick={() => setActiveQuizTab(tab.id)}
+                        onClick={() => {
+                          setActiveQuizTab(tab.id);
+                          if (tab.id === 'mcq' && !data.quiz && !data.requestQuiz && !data.quizError) {
+                            handleGenerateFeature('quiz');
+                          }
+                          if (tab.id === 'long' && !data.longQuestions && !data.requestLongQuestions && !data.longQuestionsError) {
+                            handleGenerateFeature('long');
+                          }
+                          if (tab.id === 'probable' && !data.probableQuestions && !data.requestProbableQuestions && !data.probableQuestionsError) {
+                            handleGenerateFeature('probable');
+                          }
+                        }}
                         style={{
                           padding: '8px 16px',
                           borderRadius: '20px',
@@ -562,7 +573,7 @@ function App() {
                   </div>
 
                   <div className="feature-generation-section">
-                    {activeQuizTab === 'mcq' ? (
+                    {activeQuizTab === 'mcq' && (
                       data.requestQuiz ? (
                         <>
                           <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
@@ -617,18 +628,74 @@ function App() {
                           </button>
                         </>
                       )
-                    ) : (
-                      <div style={{ padding: '32px', textAlign: 'center', color: 'var(--md-on-surface-variant)', background: 'var(--md-surface)', borderRadius: '12px', border: '1px dashed var(--md-outline-variant)' }}>
-                        <span className="material-symbols-rounded" style={{ fontSize: '48px', color: 'var(--md-primary)', opacity: 0.5, marginBottom: '16px', display: 'block', margin: '0 auto' }}>
-                          {activeQuizTab === 'long' ? 'description' : 'psychology'}
-                        </span>
-                        <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: 500 }}>
-                          {activeQuizTab === 'long' ? 'Long Answer Questions' : 'Most Probable Questions'}
-                        </h3>
-                        <p style={{ fontSize: '14px', opacity: 0.8, maxWidth: '300px', margin: '0 auto' }}>
-                          This feature is coming soon! Check back later for {activeQuizTab === 'long' ? 'detailed long-form questions' : 'curated high-probability exam questions'}.
-                        </p>
-                      </div>
+                    )}
+
+                    {activeQuizTab === 'long' && (
+                      data.requestLongQuestions ? (
+                        <>
+                          <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
+                          <p className="loading-text">Generating long questions...</p>
+                        </>
+                      ) : data.longQuestionsError ? (
+                        <>
+                          <p className="error-message" style={{ color: 'var(--md-error)', marginBottom: '12px' }}>
+                            {data.longQuestionsError}
+                          </p>
+                          <button
+                            className="generate-feature-btn"
+                            onClick={() => handleGenerateFeature('long')}
+                            disabled={generatingLongQuestions}
+                          >
+                            🔄 Retry Long Questions
+                          </button>
+                        </>
+                      ) : (
+                        <div style={{ padding: '32px', textAlign: 'center', color: 'var(--md-on-surface-variant)', background: 'var(--md-surface)', borderRadius: '12px', border: '1px dashed var(--md-outline-variant)' }}>
+                          <span className="material-symbols-rounded" style={{ fontSize: '48px', color: 'var(--md-primary)', opacity: 0.5, marginBottom: '16px', display: 'block', margin: '0 auto' }}>
+                            description
+                          </span>
+                          <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: 500 }}>
+                            Long Answer Questions
+                          </h3>
+                          <p style={{ fontSize: '14px', opacity: 0.8, maxWidth: '300px', margin: '0 auto 24px' }}>
+                            Generate detailed, exam-style 5-mark questions.
+                          </p>
+                        </div>
+                      )
+                    )}
+
+                    {activeQuizTab === 'probable' && (
+                      data.requestProbableQuestions ? (
+                        <>
+                          <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
+                          <p className="loading-text">Analysing for probable questions...</p>
+                        </>
+                      ) : data.probableQuestionsError ? (
+                        <>
+                          <p className="error-message" style={{ color: 'var(--md-error)', marginBottom: '12px' }}>
+                            {data.probableQuestionsError}
+                          </p>
+                          <button
+                            className="generate-feature-btn"
+                            onClick={() => handleGenerateFeature('probable')}
+                            disabled={generatingProbableQuestions}
+                          >
+                            🔄 Retry Analysis
+                          </button>
+                        </>
+                      ) : (
+                        <div style={{ padding: '32px', textAlign: 'center', color: 'var(--md-on-surface-variant)', background: 'var(--md-surface)', borderRadius: '12px', border: '1px dashed var(--md-outline-variant)' }}>
+                          <span className="material-symbols-rounded" style={{ fontSize: '48px', color: 'var(--md-primary)', opacity: 0.5, marginBottom: '16px', display: 'block', margin: '0 auto' }}>
+                            psychology
+                          </span>
+                          <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: 500 }}>
+                            Most Probable Questions
+                          </h3>
+                          <p style={{ fontSize: '14px', opacity: 0.8, maxWidth: '300px', margin: '0 auto 24px' }}>
+                            Curated high-probability exam questions based on syllabus analysis.
+                          </p>
+                        </div>
+                      )
                     )}
                   </div>
                 </div>
