@@ -8,10 +8,14 @@ import 'katex/dist/katex.min.css';
 const SummaryCard = ({ summary }) => {
     if (!summary) return null;
 
-    // --- MODE 1: CHEAT SHEET (Array of strings) ---
     // --- MODE 1: CHEAT SHEET (Markdown String or Array) ---
     // If it's a string, we assume it's the new Markdown format
-    if (typeof summary.cheat_sheet === 'string') {
+    if (summary.cheat_sheet !== undefined && summary.cheat_sheet !== null) {
+        // Ensure we have a string for ReactMarkdown
+        const cheatSheetContent = typeof summary.cheat_sheet === 'string'
+            ? summary.cheat_sheet
+            : JSON.stringify(summary.cheat_sheet, null, 2);
+
         return (
             <div className="summary-card cheat-sheet-mode markdown-mode">
                 <div className="summary-content">
@@ -21,7 +25,7 @@ const SummaryCard = ({ summary }) => {
                                 remarkPlugins={[remarkMath]}
                                 rehypePlugins={[rehypeKatex]}
                             >
-                                {summary.cheat_sheet}
+                                {cheatSheetContent}
                             </ReactMarkdown>
                         </div>
                     </div>
@@ -40,7 +44,9 @@ const SummaryCard = ({ summary }) => {
                     <div className="summary-text-content scrollable">
                         <ul className="summary-list">
                             {lines.map((line, index) => (
-                                <li key={index} className="summary-list-item">{line}</li>
+                                <li key={index} className="summary-list-item">
+                                    {typeof line === 'string' ? line : JSON.stringify(line)}
+                                </li>
                             ))}
                         </ul>
                     </div>
@@ -119,7 +125,7 @@ const SummaryCard = ({ summary }) => {
     }
 
     // --- FALLBACK (Legacy plain text) ---
-    const summaryText = typeof summary === 'string' ? summary : String(summary);
+    const summaryText = typeof summary === 'string' ? summary : JSON.stringify(summary);
     const lines = summaryText.split('\n').filter(line => line.trim() !== '');
 
     return (
