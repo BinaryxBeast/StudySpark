@@ -583,6 +583,127 @@ body {
   color: var(--md-success);
 }
 
+/* Download PDF Button */
+.download-pdf-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+.download-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--md-secondary-container);
+  color: var(--md-on-secondary-container);
+  border: none;
+  /* 1px solid var(--md-outline-variant); */
+  padding: 12px 24px;
+  border-radius: 20px;
+  font-family: var(--md-font-display);
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.download-pdf-btn:hover {
+  background-color: var(--md-secondary);
+  color: var(--md-on-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.download-pdf-btn:active {
+  transform: translateY(0);
+}
+
+/* Printable Styles (Hidden on Screen) */
+.printable-wrapper {
+  height: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 0;
+}
+
+/* Keep content in DOM but invisible */
+.printable-wrapper .printable-container {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 210mm;
+  background: white;
+}
+
+/* Print Media Query */
+@media print {
+
+  /* Hide main app content */
+  .app-container {
+    display: none !important;
+  }
+
+  /* Make printable wrapper visible */
+  .printable-wrapper {
+    height: auto !important;
+    width: 100% !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  /* Make printable content visible and properly positioned */
+  #printable-content,
+  .printable-wrapper {
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: block !important;
+    z-index: 99999 !important;
+    overflow: visible !important;
+  }
+
+  .printable-wrapper .printable-container,
+  .printable-container {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    width: 100% !important;
+    background: white !important;
+    color: black !important;
+    padding: 20px !important;
+  }
+
+  #printable-content *,
+  .printable-wrapper * {
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Page break controls */
+  /* Remove aggressive page-break-inside: avoid on all divs */
+
+  .printable-container h2,
+  .printable-container h3 {
+    page-break-after: avoid;
+  }
+
+  /* Force background graphics */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
 /* Analyzing State */
 .analyzing-container {
   display: flex;
@@ -1003,140 +1124,7 @@ body {
 }
 
 
-/* Detailed Mode Styles */
-.detailed-mode {
-  text-align: left;
-  position: relative;
-}
 
-.detailed-content {
-  position: relative;
-}
-
-.detailed-content.scrollable {
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: var(--md-spacing-sm);
-}
-
-/* Custom Scrollbar for Detailed Content */
-.detailed-content.scrollable::-webkit-scrollbar {
-  width: 8px;
-}
-
-.detailed-content.scrollable::-webkit-scrollbar-track {
-  background: var(--md-surface-container-low);
-  border-radius: var(--md-radius-sm);
-}
-
-.detailed-content.scrollable::-webkit-scrollbar-thumb {
-  background: var(--md-outline-variant);
-  border-radius: var(--md-radius-sm);
-  transition: background 0.2s;
-}
-
-.detailed-content.scrollable::-webkit-scrollbar-thumb:hover {
-  background: var(--md-outline);
-}
-
-/* Firefox Scrollbar */
-.detailed-content.scrollable {
-  scrollbar-width: thin;
-  scrollbar-color: var(--md-outline-variant) var(--md-surface-container-low);
-}
-
-.detailed-content.collapsed {
-  max-height: 400px;
-  overflow: hidden;
-  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.detailed-content.expanded {
-  max-height: 5000px;
-}
-
-.detailed-section {
-  margin-bottom: var(--md-spacing-xl);
-}
-
-.detailed-section:last-child {
-  margin-bottom: 0;
-}
-
-.detailed-section h4 {
-  font-family: var(--md-font-display);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--md-on-surface);
-  margin-bottom: var(--md-spacing-md);
-  padding-bottom: var(--md-spacing-sm);
-  border-bottom: 1px solid var(--md-outline-variant);
-}
-
-.detailed-item {
-  background-color: var(--md-surface-container-low);
-  border-radius: var(--md-radius-sm);
-  padding: var(--md-spacing-md);
-  margin-bottom: var(--md-spacing-sm);
-  font-size: 14px;
-  line-height: 1.6;
-  border-left: 3px solid var(--md-primary);
-}
-
-.term {
-  font-weight: 500;
-  color: var(--md-primary);
-}
-
-.question-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--md-spacing-sm);
-  background: var(--md-surface);
-  border: 1px solid var(--md-outline-variant);
-  border-left: 3px solid var(--md-primary);
-}
-
-.badge {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: var(--md-radius-full);
-  font-weight: 500;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.badge.very-important {
-  background: var(--md-error-container);
-  color: var(--md-error);
-}
-
-.badge.important {
-  background: #FEF7E0;
-  color: #B06000;
-}
-
-.badge.optional {
-  background: var(--md-primary-container);
-  color: var(--md-primary);
-}
-
-.mistake-item {
-  border-left-color: var(--md-error);
-}
-
-.mistake-point {
-  display: block;
-  color: var(--md-error);
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-
-.mistake-correction {
-  display: block;
-  color: var(--md-success);
-  font-weight: 500;
-}
 
 /* =========================================
    FLASHCARDS SECTION

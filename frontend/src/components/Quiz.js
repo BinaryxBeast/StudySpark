@@ -1,8 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import '../App.css';
 
-const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, generatingState, requestsState, errorsState }) => {
-    const [answersState, setAnswersState] = useState({});
+const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, generatingState, requestsState, errorsState, externalAnswersState, onAnswersChange }) => {
+    // Use external state if available, otherwise local state
+    const [localAnswersState, setLocalAnswersState] = useState({});
+
+    const answersState = externalAnswersState || localAnswersState;
+    const setAnswersState = onAnswersChange || setLocalAnswersState;
+
     const [score, setScore] = useState(null);
     const [activeTab, setActiveTab] = useState('mcq');
 
@@ -10,10 +15,12 @@ const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, 
     const runningScore = useMemo(() => {
         let correct = 0;
         let answered = 0;
-        Object.values(answersState).forEach(state => {
-            answered++;
-            if (state.isCorrect) correct++;
-        });
+        if (answersState) {
+            Object.values(answersState).forEach(state => {
+                answered++;
+                if (state.isCorrect) correct++;
+            });
+        }
         return { correct, answered };
     }, [answersState]);
 
@@ -355,7 +362,18 @@ const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, 
                 ].map(tab => (
                     <button
                         key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
+                        onClick={() => {
+                            setActiveTab(tab.id);
+                            if (tab.id === 'mcq' && !questions && !generatingState?.quiz && !requestsState?.quiz) {
+                                onGenerateFeature('quiz');
+                            }
+                            if (tab.id === 'long' && !longQuestions && !generatingState?.long && !requestsState?.long) {
+                                onGenerateFeature('long');
+                            }
+                            if (tab.id === 'probable' && !probableQuestions && !generatingState?.probable && !requestsState?.probable) {
+                                onGenerateFeature('probable');
+                            }
+                        }}
                         style={{
                             padding: '8px 16px',
                             borderRadius: '20px',
