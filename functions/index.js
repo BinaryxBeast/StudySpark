@@ -43,6 +43,25 @@ async function performGeminiAction(actionFn, retries = 8, initialDelay = 2000) {
         }
     }
 }
+// Helper to safely parse JSON from Gemini response
+function cleanAndParseJSON(text) {
+    try {
+        // Remove markdown code blocks if present
+        let cleanText = text.replace(/```json\s*|\s*```/g, "").trim();
+        // Sometimes the model might output text before or after the JSON, so we try to find the first { and last }
+        const firstOpen = cleanText.indexOf('{');
+        const lastClose = cleanText.lastIndexOf('}');
+
+        if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+            cleanText = cleanText.substring(firstOpen, lastClose + 1);
+        }
+
+        return JSON.parse(cleanText);
+    } catch (e) {
+        logger.error("Failed to parse JSON. Raw text:", text);
+        throw e;
+    }
+}
 
 initializeApp();
 
@@ -223,7 +242,7 @@ OUTPUT FORMAT JSON:
         }
 
         const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
-        const output = JSON.parse(result.response.text());
+        const output = cleanAndParseJSON(result.response.text());
 
         await docRef.set({
             summary: output,
@@ -368,7 +387,7 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
                 }`;
 
                 const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
-                const output = JSON.parse(result.response.text());
+                const output = cleanAndParseJSON(result.response.text());
 
                 // Store both summaries: cheat-sheet preserved, detailed as new
                 batch.update(docRef, {
@@ -426,7 +445,7 @@ OUTPUT FORMAT (strict JSON):
   ]
 }`;
                 const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
-                const output = JSON.parse(result.response.text());
+                const output = cleanAndParseJSON(result.response.text());
                 batch.update(docRef, { flashcards: output.flashcards, requestFlashcards: false });
                 hasUpdates = true;
             } catch (error) {
@@ -476,7 +495,7 @@ OUTPUT FORMAT (strict JSON):
                 `;
 
                 const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
-                const output = JSON.parse(result.response.text());
+                const output = cleanAndParseJSON(result.response.text());
                 batch.update(docRef, { longQuestions: output.longQuestions, requestLongQuestions: false });
                 hasUpdates = true;
             } catch (error) {
@@ -528,7 +547,7 @@ OUTPUT FORMAT (strict JSON):
                 `;
 
                 const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
-                const output = JSON.parse(result.response.text());
+                const output = cleanAndParseJSON(result.response.text());
                 batch.update(docRef, { probableQuestions: output.probableQuestions, requestProbableQuestions: false });
                 hasUpdates = true;
             } catch (error) {
@@ -584,7 +603,7 @@ OUTPUT FORMAT (strict JSON):
                 - "explanation" should provide educational value by clarifying the concept and helping students understand why the correct answer is right.`;
 
                 const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
-                const output = JSON.parse(result.response.text());
+                const output = cleanAndParseJSON(result.response.text());
                 batch.update(docRef, { quiz: output.quiz, requestQuiz: false });
                 hasUpdates = true;
             } catch (error) {
