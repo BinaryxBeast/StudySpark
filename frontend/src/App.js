@@ -131,12 +131,34 @@ function App() {
         const unsubscribe = onSnapshot(doc(db, "study_results", docId), (docSnapshot) => {
           if (docSnapshot.exists()) {
             const docData = docSnapshot.data();
+            console.log("[StudySpark] Snapshot Update:", docData);
 
             // Check for critical errors
             if (docData.status === 'error') {
               setUploadStatus('error');
               setErrorMessage(docData.error || "An error occurred during processing.");
               return;
+            }
+
+            // Auto-start features (Flashcards & Quiz) ASAP
+            const updates = {};
+
+            // Check Flashcards
+            if (!docData.flashcards && !docData.requestFlashcards && !docData.flashcardsError) {
+              console.log("[StudySpark] Auto-requesting Flashcards");
+              updates.requestFlashcards = true;
+            }
+
+            // Check Quiz
+            if (!docData.quiz && !docData.requestQuiz && !docData.quizError) {
+              console.log("[StudySpark] Auto-requesting Quiz");
+              updates.requestQuiz = true;
+            }
+
+            if (Object.keys(updates).length > 0) {
+              updateDoc(doc(db, "study_results", docId), updates)
+                .then(() => console.log("[StudySpark] Update successfully sent"))
+                .catch((err) => console.error("[StudySpark] Error auto-starting features:", err));
             }
 
             // ONLY Redirect if we have a summary locally
@@ -148,12 +170,6 @@ function App() {
               setData(docData);
               // If we have data, we are done uploading/processing
               setUploadStatus('complete');
-
-              // Auto-start quiz generation if not already present or requested
-              if (!docData.quiz && !docData.requestQuiz && !docData.quizError) {
-                updateDoc(doc(db, "study_results", docId), { requestQuiz: true })
-                  .catch((err) => console.error("Error auto-starting quiz:", err));
-              }
             } else {
               // Document exists but no summary yet -> We are analyzing
               setUploadStatus('analyzing');

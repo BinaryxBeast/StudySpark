@@ -9,7 +9,27 @@ import '../App.css';
 const PrintableStudyGuide = React.forwardRef(({ data, fileName, quizAnswers = {} }, ref) => {
   if (!data) return null;
 
+  // --- Theme Constants ---
+  const THEME = {
+    primary: '#125DD0', // StudySpark Blue
+    success: '#22c55e',
+    error: '#ef4444',
+    text: '#1a1a1a',
+    muted: '#6b7280',
+    border: '#e5e7eb',
+    bg: '#ffffff'
+  };
+
+  const FONTS = {
+    title: "26px",
+    section: "18px",
+    subHeader: "14px",
+    body: "11px",
+    mono: "10px"
+  };
+
   // Helper function to extract markdown string from summary object
+  // Now EXCLUDES 'common_mistakes' so we can render it manually
   const extractSummaryString = (summary) => {
     if (!summary) return '';
     if (typeof summary === 'string') return summary;
@@ -58,13 +78,7 @@ const PrintableStudyGuide = React.forwardRef(({ data, fileName, quizAnswers = {}
         markdown += "\n";
       }
 
-      if (summary.common_mistakes && summary.common_mistakes.length > 0) {
-        markdown += "## ⚠️ Common Mistakes\n\n";
-        summary.common_mistakes.forEach(item => {
-          markdown += `- ❌ ${item.point}\n  ✅ **Correction**: ${item.correction}\n`;
-        });
-        markdown += "\n";
-      }
+      // REMOVED common_mistakes from here to render manually
 
       return markdown;
     }
@@ -76,32 +90,41 @@ const PrintableStudyGuide = React.forwardRef(({ data, fileName, quizAnswers = {}
   const cheatSheetContent = extractSummaryString(data.cheatSheetSummary || data.summary);
   const detailedSummaryContent = extractSummaryString(data.detailedSummary);
 
-  // Common styles
-  const cardStyle = {
-    padding: '20px',
-    backgroundColor: '#f8fafc',
-    borderRadius: '12px',
-    border: '1px solid #e2e8f0',
-    marginBottom: '16px',
-  };
+  // Extract Common Mistakes separately if they exist in detailedSummary
+  const commonMistakes = data.detailedSummary?.common_mistakes;
 
-  const pillStyle = {
-    display: 'inline-block',
-    padding: '8px 20px',
-    backgroundColor: '#e8f0fe',
-    color: '#125DD0',
-    borderRadius: '20px',
-    fontSize: '14px',
-    fontWeight: '500',
-    fontFamily: "'Google Sans', Inter, sans-serif"
+  // --- Styles ---
+
+  // Clean, no-card layout
+  const sectionContainerStyle = {
+    marginBottom: '32px',
+    paddingBottom: '24px',
+    borderBottom: `1px solid ${THEME.border}`,
   };
 
   const sectionTitleStyle = {
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#1a1a1a',
-    margin: '0 0 12px 0',
+    fontSize: FONTS.section,
+    fontWeight: '700',
+    color: THEME.primary,
+    marginBottom: '16px',
+    borderBottom: `2px solid ${THEME.primary}`,
+    display: 'inline-block',
+    paddingBottom: '4px',
     fontFamily: "'Google Sans', Inter, sans-serif"
+  };
+
+  const subHeaderStyle = {
+    fontSize: FONTS.subHeader,
+    fontWeight: '600',
+    color: THEME.text,
+    marginBottom: '8px',
+    fontFamily: "'Google Sans', Inter, sans-serif"
+  };
+
+  const bodyStyle = {
+    fontSize: FONTS.body,
+    color: THEME.text,
+    lineHeight: '1.5',
   };
 
   const calculateScore = () => {
@@ -118,389 +141,239 @@ const PrintableStudyGuide = React.forwardRef(({ data, fileName, quizAnswers = {}
 
   return (
     <div ref={ref} className="printable-container" style={{
-      padding: '24px 40px',
+      padding: '40px 50px', // Standard document padding
       fontFamily: "'Google Sans', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       backgroundColor: '#ffffff',
-      color: '#1a1a1a',
+      color: THEME.text,
       lineHeight: '1.5',
       maxWidth: '800px',
       margin: '0 auto',
     }}>
-      {/* Header with Logo - Compact */}
-      <div style={{ textAlign: 'center', marginBottom: '20px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '8px' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '40px', paddingBottom: '20px', borderBottom: `2px solid ${THEME.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
           <img
             src={process.env.PUBLIC_URL + '/favicon.png'}
-            alt="StudySpark"
-            style={{ width: '20px', height: '20px' }}
+            alt="StudySpark Logo"
+            style={{ width: '32px', height: '32px' }}
           />
-          <span style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            fontFamily: "'Google Sans', Inter, sans-serif"
+          <h1 style={{
+            margin: '0',
+            fontSize: FONTS.title,
+            fontWeight: '700',
+            color: THEME.text,
+            lineHeight: '1.2'
           }}>
-            <span style={{ color: '#1a1a1a' }}>Study</span>
-            <span style={{ color: '#125DD0' }}>Spark</span>
-          </span>
+            <span style={{ color: THEME.primary }}>StudySpark:</span> Study Guide
+          </h1>
         </div>
-        <h1 style={{
-          margin: '0 0 2px 0',
-          fontSize: '18px',
-          fontWeight: '500',
-          color: '#1a1a1a',
-          fontFamily: "'Google Sans', Inter, sans-serif"
-        }}>
-          Your Study Guide
-        </h1>
-        <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>{fileName}</p>
+
+        {/* Filename Subtitle */}
+        <div style={{ fontSize: FONTS.section, color: THEME.muted, fontWeight: '500' }}>
+          {fileName}
+        </div>
       </div>
 
-      {/* Summary Section - Cheat Sheet - Inside Card */}
+      {/* Summary Section - Cheat Sheet */}
       {cheatSheetContent && (
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-            <span style={pillStyle}>Cheat Sheet</span>
-          </div>
-          <div style={cardStyle}>
-            <div className="markdown-body" style={{ fontSize: '12px', color: '#374151', lineHeight: '1.6' }}>
-              <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-              >
-                {cheatSheetContent}
-              </ReactMarkdown>
-            </div>
+        <div style={sectionContainerStyle}>
+          <h2 style={sectionTitleStyle}>Cheat Sheet</h2>
+          <div className="markdown-body" style={{ ...bodyStyle }}>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              {cheatSheetContent}
+            </ReactMarkdown>
           </div>
         </div>
       )}
 
-      {/* Summary Section - Detailed Summary - Inside Card */}
+      {/* Summary Section - Detailed Summary */}
       {detailedSummaryContent && (
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '12px' }}>
-            <span style={pillStyle}>Detailed Summary</span>
+        <div style={sectionContainerStyle}>
+          <h2 style={sectionTitleStyle}>Detailed Summary</h2>
+          <div className="markdown-body" style={{ ...bodyStyle }}>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              {detailedSummaryContent}
+            </ReactMarkdown>
           </div>
-          <div style={cardStyle}>
-            <div className="markdown-body" style={{ fontSize: '12px', color: '#374151', lineHeight: '1.6' }}>
-              <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-              >
-                {detailedSummaryContent}
-              </ReactMarkdown>
-            </div>
+        </div>
+      )}
+
+      {/* Common Mistakes - Custom Rendering */}
+      {commonMistakes && commonMistakes.length > 0 && (
+        <div style={sectionContainerStyle}>
+          <h2 style={sectionTitleStyle}>⚠️ Common Mistakes</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {commonMistakes.map((item, idx) => (
+              <div key={idx} style={{
+                display: 'flex',
+                borderLeft: `3px solid ${THEME.error}`,
+                paddingLeft: '16px',
+                backgroundColor: '#fff', // clean, no extra bg
+              }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '4px' }}>
+                    <span style={{ color: THEME.error, marginRight: '8px', fontSize: '14px', fontWeight: 'bold' }}>✕</span>
+                    <span style={{ fontSize: '12px', color: THEME.text, fontStyle: 'italic' }}>"{item.point}"</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                    <span style={{ color: THEME.success, marginRight: '8px', fontSize: '14px', fontWeight: 'bold' }}>✓</span>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: THEME.text }}>Correction: <span style={{ fontWeight: '400' }}>{item.correction}</span></span>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       {/* Spark Questions - MCQs */}
       {data.quiz && data.quiz.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-            <h2 style={sectionTitleStyle}>Spark Questions</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-              <span style={pillStyle}>MCQs</span>
-              {score && (
-                <span style={{
-                  fontSize: '12px',
-                  fontWeight: '600',
-                  color: score.correct >= score.attempts * 0.7 ? '#16a34a' : '#1a1a1a',
-                  backgroundColor: score.correct >= score.attempts * 0.7 ? '#dcfce7' : '#f3f4f6',
-                  padding: '4px 12px',
-                  borderRadius: '12px'
-                }}>
-                  Score: {score.correct} / {score.attempts} Correct
-                </span>
-              )}
-            </div>
+        <div style={sectionContainerStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ ...sectionTitleStyle, marginBottom: 0 }}>Quiz Questions</h2>
+            {score && (
+              <span style={{ fontSize: FONTS.mono, fontWeight: '600', color: THEME.muted, border: `1px solid ${THEME.border}`, padding: '4px 8px', borderRadius: '4px' }}>
+                Score: {score.correct}/{score.attempts}
+              </span>
+            )}
           </div>
 
-          {data.quiz.map((q, index) => {
-            // Get user's answer state if available
-            const userAnswer = quizAnswers[index];
-            const hasUserInteracted = !!userAnswer;
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {data.quiz.map((q, index) => {
+              const userAnswer = quizAnswers[index];
+              const correctAnswer = q.answer || q.correctAnswer;
 
-            // Handle both array and object options
-            const optionsArray = Array.isArray(q.options)
-              ? q.options
-              : Object.entries(q.options || {}).map(([k, v]) => v);
+              // Only formatting text, no boxes
+              return (
+                <div key={index} style={{ pageBreakInside: 'avoid' }}>
+                  <p style={{ ...subHeaderStyle, marginBottom: '8px' }}>
+                    {index + 1}. {q.question}
+                  </p>
 
-            // Correct answer - handle different data formats
-            const correctAnswer = q.answer || q.correctAnswer;
+                  {/* Options List */}
+                  <div style={{ marginLeft: '16px', display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '8px' }}>
+                    {(Array.isArray(q.options) ? q.options : Object.values(q.options || {})).map((opt, optIdx) => {
+                      const letter = String.fromCharCode(65 + optIdx);
+                      const isCorrect = opt === correctAnswer || (q.correctAnswer && String.fromCharCode(97 + optIdx) === q.correctAnswer);
+                      const isSelected = userAnswer?.selectedOption === opt;
 
-            return (
-              <div key={index} style={{
-                ...cardStyle,
-                pageBreakInside: 'avoid'
-              }}>
-                <p style={{
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  marginBottom: '12px',
-                  color: '#1a1a1a',
-                  fontFamily: "'Google Sans', Inter, sans-serif"
-                }}>
-                  {index + 1}. {q.question}
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {optionsArray.map((opt, optIndex) => {
-                    const letter = String.fromCharCode(65 + optIndex); // A, B, C, D
-                    const isCorrect = opt === correctAnswer ||
-                      (q.correctAnswer && String.fromCharCode(97 + optIndex) === q.correctAnswer);
+                      let color = THEME.text;
+                      let weight = '400';
+                      let prefix = `${letter}. `;
 
-                    // Determine if user selected this option
-                    const isUserSelected = hasUserInteracted && userAnswer.selectedOption === opt;
-                    const isUserCorrect = hasUserInteracted && userAnswer.isCorrect;
-
-                    // Determine styling
-                    let bgColor = '#ffffff';
-                    let borderColor = '#e2e8f0';
-                    let letterBg = '#e2e8f0';
-                    let letterColor = '#64748b';
-
-                    if (hasUserInteracted) {
+                      // Minimalist coloring only
                       if (isCorrect) {
-                        bgColor = '#dcfce7';
-                        borderColor = '#22c55e';
-                        letterBg = '#22c55e';
-                        letterColor = '#ffffff';
-                      } else if (isUserSelected && !isUserCorrect) {
-                        bgColor = '#fee2e2';
-                        borderColor = '#ef4444';
-                        letterBg = '#ef4444';
-                        letterColor = '#ffffff';
+                        color = THEME.success;
+                        weight = '600';
+                      } else if (isSelected && !userAnswer.isCorrect) {
+                        color = THEME.error;
                       }
-                    } else {
-                      // No interaction - just show correct answer in green
-                      if (isCorrect) {
-                        bgColor = '#dcfce7';
-                        borderColor = '#22c55e';
-                        letterBg = '#22c55e';
-                        letterColor = '#ffffff';
-                      }
-                    }
 
-                    return (
-                      <div key={optIndex} style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '10px 14px',
-                        backgroundColor: bgColor,
-                        borderRadius: '8px',
-                        border: `1px solid ${borderColor}`,
-                      }}>
-                        <span style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          backgroundColor: letterBg,
-                          color: letterColor,
-                          fontWeight: '600',
-                          fontSize: '11px',
-                          marginRight: '10px',
-                          flexShrink: 0,
-                          fontFamily: "'Google Sans', Inter, sans-serif"
-                        }}>
-                          {letter}
-                        </span>
-                        <span style={{ fontSize: '13px', color: '#1a1a1a' }}>{opt}</span>
-                        {isCorrect && <span style={{ marginLeft: 'auto', color: '#22c55e', fontWeight: 'bold', fontSize: '14px' }}>✓</span>}
-                        {isUserSelected && !isUserCorrect && <span style={{ marginLeft: 'auto', color: '#ef4444', fontWeight: 'bold', fontSize: '14px' }}>✕</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Explanation */}
-                {(q.explanation || hasUserInteracted) && (
-                  <div style={{
-                    marginTop: '12px',
-                    padding: '10px 14px',
-                    backgroundColor: hasUserInteracted && !userAnswer?.isCorrect ? '#fee2e2' : '#dcfce7',
-                    borderRadius: '8px',
-                    borderLeft: `4px solid ${hasUserInteracted && !userAnswer?.isCorrect ? '#ef4444' : '#22c55e'}`,
-                  }}>
-                    <p style={{
-                      fontWeight: '600',
-                      fontSize: '12px',
-                      color: hasUserInteracted && !userAnswer?.isCorrect ? '#dc2626' : '#16a34a',
-                      marginBottom: '2px'
-                    }}>
-                      {hasUserInteracted && !userAnswer?.isCorrect
-                        ? `Incorrect. The correct answer is: ${correctAnswer}`
-                        : 'Correct! Well done.'
-                      }
-                    </p>
-                    {q.explanation && (
-                      <p style={{ fontSize: '12px', color: '#1a1a1a', margin: 0 }}>{q.explanation}</p>
-                    )}
+                      return (
+                        <div key={optIdx} style={{ fontSize: FONTS.body, color: color, fontWeight: weight }}>
+                          {prefix}{opt}
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {/* Explanation - Subtle */}
+                  {(q.explanation || userAnswer) && (
+                    <div style={{ paddingLeft: '16px', borderLeft: `2px solid ${THEME.border}`, marginLeft: '4px' }}>
+                      <p style={{ fontSize: FONTS.mono, color: THEME.muted, margin: 0 }}>
+                        {userAnswer && !userAnswer.isCorrect && <span style={{ color: THEME.error, fontWeight: 'bold', marginRight: '6px' }}>Incorrect.</span>}
+                        {q.explanation}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Spark Questions - Long Answers */}
       {data.longQuestions && data.longQuestions.length > 0 && (
-        <div style={{ marginBottom: '32px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-            <h2 style={sectionTitleStyle}>Long Answers</h2>
-            <span style={pillStyle}>Long Answers</span>
-          </div>
+        <div style={sectionContainerStyle}>
+          <h2 style={sectionTitleStyle}>Long Answer Questions</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            {data.longQuestions.map((q, index) => {
+              const question = typeof q === 'string' ? q : q.question;
+              const marks = q.marks || '5';
+              const answerKey = q.answerKey || q.answer_key || q.answer || '';
 
-          {data.longQuestions.map((q, index) => {
-            const question = typeof q === 'string' ? q : q.question;
-            const marks = q.marks || '5';
-            // Try multiple possible field names for answer key
-            const answerKey = q.answerKey || q.answer_key || q.answer || '';
-
-            return (
-              <div key={index} style={{
-                ...cardStyle,
-                pageBreakInside: 'avoid'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>Q{index + 1}</span>
-                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>({marks})</span>
-                </div>
-                <p style={{
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: '#1a1a1a',
-                  marginBottom: '12px',
-                  lineHeight: '1.5',
-                  fontFamily: "'Google Sans', Inter, sans-serif"
-                }}>
-                  {question}
-                </p>
-
-                {/* Answer Key - Always Expanded */}
-                <div style={{
-                  backgroundColor: '#ffffff',
-                  borderRadius: '8px',
-                  border: '1px solid #e2e8f0',
-                  overflow: 'hidden',
-                }}>
-                  <div style={{
-                    padding: '10px 14px',
-                    backgroundColor: '#f1f5f9',
-                    borderBottom: '1px solid #e2e8f0',
-                  }}>
-                    <p style={{ fontSize: '13px', fontWeight: '600', color: '#125DD0', margin: 0 }}>
-                      Answer Key
-                    </p>
+              return (
+                <div key={index} style={{ pageBreakInside: 'avoid' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
+                    <span style={subHeaderStyle}>Q{index + 1}. {question}</span>
+                    <span style={{ fontSize: FONTS.mono, color: THEME.muted }}>({marks} marks)</span>
                   </div>
-                  <div style={{ padding: '12px 14px' }}>
-                    {answerKey ? (
-                      typeof answerKey === 'string' ? (
-                        <p style={{ fontSize: '12px', color: '#374151', margin: 0, lineHeight: '1.6', whiteSpace: 'pre-line' }}>
-                          {answerKey}
-                        </p>
+
+                  {/* Answer Key - Text only, no box */}
+                  {answerKey && (
+                    <div style={{ paddingLeft: '0', marginTop: '8px' }}>
+                      <span style={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: '700', color: THEME.muted, display: 'block', marginBottom: '4px' }}>Key Points</span>
+                      {typeof answerKey === 'string' ? (
+                        <p style={{ fontSize: FONTS.body, color: THEME.text, whiteSpace: 'pre-line', margin: 0 }}>{answerKey}</p>
                       ) : Array.isArray(answerKey) ? (
-                        answerKey.map((point, i) => (
-                          <p key={i} style={{ fontSize: '12px', color: '#374151', margin: '0 0 6px 0', lineHeight: '1.5' }}>
-                            • {point}
-                          </p>
-                        ))
+                        <ul style={{ margin: '0 0 0 16px', padding: 0, fontSize: FONTS.body, color: THEME.text }}>
+                          {answerKey.map((pt, i) => <li key={i}>{pt}</li>)}
+                        </ul>
                       ) : (
-                        <p style={{ fontSize: '12px', color: '#374151', margin: 0, lineHeight: '1.6' }}>
-                          {JSON.stringify(answerKey)}
-                        </p>
-                      )
-                    ) : (
-                      <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0, fontStyle: 'italic' }}>
-                        Answer key not available for this question.
-                      </p>
-                    )}
-                  </div>
+                        <p style={{ fontSize: FONTS.body, color: THEME.text }}>{JSON.stringify(answerKey)}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Spark Questions - Most Probable Questions */}
       {data.probableQuestions && data.probableQuestions.length > 0 && (
-        <div style={{ marginBottom: '32px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-            <h2 style={sectionTitleStyle}>Most Probable Questions</h2>
-            <span style={pillStyle}>Most Probable Questions</span>
-          </div>
+        <div style={sectionContainerStyle}>
+          <h2 style={sectionTitleStyle}>Most Probable Questions</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {data.probableQuestions.map((q, index) => {
+              const question = typeof q === 'string' ? q : q.question;
+              const probability = q.probability || 'High';
+              const reason = q.reason || q.category || q.reasoning || '';
 
-          {data.probableQuestions.map((q, index) => {
-            const question = typeof q === 'string' ? q : q.question;
-            const probability = q.probability || 'High';
-            const reason = q.reason || q.category || q.reasoning || '';
-
-            return (
-              <div key={index} style={{
-                ...cardStyle,
-                pageBreakInside: 'avoid'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>#{index + 1}</span>
-                  <span style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '3px 8px',
-                    backgroundColor: '#fef2f2',
-                    border: '1px solid #fecaca',
-                    borderRadius: '12px',
-                    fontSize: '10px',
-                    fontWeight: '600',
-                    color: '#dc2626',
-                  }}>
-                    🔥 {probability.toUpperCase()} PROBABILITY
-                  </span>
-                </div>
-                <p style={{
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: '#1a1a1a',
-                  marginBottom: '8px',
-                  lineHeight: '1.5',
-                  fontFamily: "'Google Sans', Inter, sans-serif"
-                }}>
-                  {question}
-                </p>
-                {reason && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '6px',
-                    fontSize: '11px',
-                    color: '#64748b',
-                    backgroundColor: '#f1f5f9',
-                    padding: '8px 10px',
-                    borderRadius: '6px'
-                  }}>
-                    <span>💡</span>
-                    <span>{reason}</span>
+              return (
+                <div key={index} style={{ pageBreakInside: 'avoid', borderLeft: `3px solid ${THEME.primary}`, paddingLeft: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <span style={{ fontSize: FONTS.mono, fontWeight: '700', color: THEME.primary }}>{probability.toUpperCase()} PROBABILITY</span>
                   </div>
-                )}
-              </div>
-            );
-          })}
+                  <p style={{ ...subHeaderStyle, marginBottom: '4px' }}>{question}</p>
+                  {reason && (
+                    <p style={{ fontSize: FONTS.body, color: THEME.muted, margin: 0, fontStyle: 'italic' }}>
+                      Why? {reason}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* Footer */}
+      {/* Footer Timestamp */}
       <div style={{
-        marginTop: '30px',
-        textAlign: 'center',
-        fontSize: '11px',
-        color: '#9ca3af',
-        borderTop: '1px solid #e5e7eb',
-        paddingTop: '16px'
+        marginTop: '40px',
+        paddingTop: '12px',
+        borderTop: `1px solid ${THEME.border}`,
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontSize: FONTS.mono,
+        color: THEME.muted
       }}>
-        Generated by StudySpark
+        <span>Generated by StudySpark</span>
+        <span>{new Date().toLocaleString()}</span>
       </div>
+
     </div>
   );
 });
