@@ -90,8 +90,14 @@ StudySpark addresses these problems by analyzing uploaded PDFs and converting th
 ---
 
 ## Screenshots
+<img width="1365" height="652" alt="image" src="https://github.com/user-attachments/assets/2817570b-06e1-45cd-8729-81a5f670d798" />
+<img width="1365" height="648" alt="image" src="https://github.com/user-attachments/assets/08cbd0b7-1e99-4c3e-b653-296581543076" />
+<img width="1349" height="653" alt="image" src="https://github.com/user-attachments/assets/85f313b4-4d56-4a84-bc13-f2c310604484" />
+<img width="1327" height="652" alt="image" src="https://github.com/user-attachments/assets/6f07a0a7-eeae-43f0-83be-a6d0b2c9d085" />
+<img width="1348" height="652" alt="image" src="https://github.com/user-attachments/assets/db7825ce-112a-420f-a4ab-74bae0cc8a54" />
+<img width="1344" height="649" alt="image" src="https://github.com/user-attachments/assets/e787b98e-ec7e-44d6-8f87-90af7802f6ab" />
 
-_Add screenshots of the UI and generated PDFs here._
+
 
 ---
 
