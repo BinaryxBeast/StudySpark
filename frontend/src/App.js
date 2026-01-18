@@ -36,6 +36,7 @@ function App() {
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
   const [generatingLongQuestions, setGeneratingLongQuestions] = useState(false);
   const [generatingProbableQuestions, setGeneratingProbableQuestions] = useState(false);
+  const [generatingUnansweredQuestions, setGeneratingUnansweredQuestions] = useState(false);
   const [activeQuizTab, setActiveQuizTab] = useState('mcq');
 
   // Quiz Answers State (Lifted up for PDF)
@@ -70,7 +71,10 @@ function App() {
     if (data?.probableQuestions || data?.probableQuestionsError) {
       setGeneratingProbableQuestions(false);
     }
-  }, [data?.flashcards, data?.flashcardsError, data?.quiz, data?.quizError, data?.longQuestions, data?.longQuestionsError, data?.probableQuestions, data?.probableQuestionsError]);
+    if (data?.unansweredQuestions || data?.unansweredQuestionsError) {
+      setGeneratingUnansweredQuestions(false);
+    }
+  }, [data?.flashcards, data?.flashcardsError, data?.quiz, data?.quizError, data?.longQuestions, data?.longQuestionsError, data?.probableQuestions, data?.probableQuestionsError, data?.unansweredQuestions, data?.unansweredQuestionsError]);
 
   // Toggle theme function
   const toggleTheme = () => {
@@ -240,6 +244,7 @@ function App() {
     if (feature === 'quiz' && generatingQuiz) return;
     if (feature === 'long' && generatingLongQuestions) return;
     if (feature === 'probable' && generatingProbableQuestions) return;
+    if (feature === 'unanswered' && generatingUnansweredQuestions) return;
 
     const docId = file.name.replace(".pdf", "");
     const docRef = doc(db, "study_results", docId);
@@ -247,16 +252,26 @@ function App() {
     try {
       if (feature === 'flashcards') {
         setGeneratingFlashcards(true);
-        await updateDoc(docRef, { requestFlashcards: true });
+        // Clear local error state immediately for instant feedback
+        setData(prev => prev ? { ...prev, flashcardsError: null, requestFlashcards: true } : prev);
+        await updateDoc(docRef, { requestFlashcards: true, flashcardsError: null });
       } else if (feature === 'quiz') {
         setGeneratingQuiz(true);
-        await updateDoc(docRef, { requestQuiz: true });
+        setData(prev => prev ? { ...prev, quizError: null, requestQuiz: true } : prev);
+        await updateDoc(docRef, { requestQuiz: true, quizError: null });
       } else if (feature === 'long') {
         setGeneratingLongQuestions(true);
-        await updateDoc(docRef, { requestLongQuestions: true });
+        setData(prev => prev ? { ...prev, longQuestionsError: null, requestLongQuestions: true } : prev);
+        await updateDoc(docRef, { requestLongQuestions: true, longQuestionsError: null });
       } else if (feature === 'probable') {
         setGeneratingProbableQuestions(true);
-        await updateDoc(docRef, { requestProbableQuestions: true });
+        setData(prev => prev ? { ...prev, probableQuestionsError: null, requestProbableQuestions: true } : prev);
+        await updateDoc(docRef, { requestProbableQuestions: true, probableQuestionsError: null });
+      } else if (feature === 'unanswered') {
+        setGeneratingUnansweredQuestions(true);
+        // Clear local error state immediately for instant UI feedback
+        setData(prev => prev ? { ...prev, unansweredQuestionsError: null, requestUnansweredQuestions: true } : prev);
+        await updateDoc(docRef, { requestUnansweredQuestions: true, unansweredQuestionsError: null });
       }
     } catch (error) {
       console.error("Error requesting feature:", error);
@@ -265,6 +280,7 @@ function App() {
       if (feature === 'quiz') setGeneratingQuiz(false);
       if (feature === 'long') setGeneratingLongQuestions(false);
       if (feature === 'probable') setGeneratingProbableQuestions(false);
+      if (feature === 'unanswered') setGeneratingUnansweredQuestions(false);
     }
   };
 
@@ -297,14 +313,9 @@ function App() {
             <div className="landing-section">
               {/* Hero Section - Animates away when processing */}
               <div className={`hero-section ${uploadStatus !== 'idle' ? 'hidden' : ''}`}>
-                <h1 className="hero-headline">Welcome to StudySpark</h1>
-                <p className="hero-tagline">Your Revision Partner</p>
-                <div className="trust-badge">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 1L3 5V11C3 16.55 6.84 21.74 12 23C17.16 21.74 21 16.55 21 11V5L12 1ZM10 17L6 13L7.41 11.59L10 14.17L16.59 7.58L18 9L10 17Z" fill="#34A853" />
-                  </svg>
-                  No login required
-                </div>
+                <h1 className="hero-headline">Turn PDFs into Smart Revision Notes</h1>
+                <p className="hero-tagline">Summaries, key points, questions & quick revision — instantly.</p>
+                {/* Trust Badge Removed */}
               </div>
 
               {/* Primary Upload Card */}
@@ -316,20 +327,41 @@ function App() {
                       <React.Fragment>
                         <div className={`upload-icon-wrapper ${dragActive ? 'pulse' : ''}`}>
                           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM14 13V17H10V13H7L12 8L17 13H14Z" fill="#125DD0" />
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4C9.11 4 6.6 5.64 5.35 8.04C2.34 8.36 0 10.91 0 14C0 17.31 2.69 20 6 20H19C21.76 20 24 17.76 24 15C24 12.36 21.95 10.22 19.35 10.04ZM14 13V17H10V13H7L12 8L17 13H14Z" fill="currentColor" />
                           </svg>
                         </div>
                         <p className="upload-text">Drag & drop PDF here</p>
-                        <p className="upload-helper-combined">Max file size: 10 MB - PDF only</p>
-                        <p className="upload-reassurance">Works with handwritten notes, textbooks & slides</p>
+                        <p className="upload-helper-combined">Max file size: 40 MB - PDF only</p>
+                        <p className="upload-reassurance">Works with handwritten notes, textbooks, and PPT slides</p>
+
+                        {/* New Explicit CTA Button inside card */}
+                        <div className="upload-pdf-btn-card">
+                          <span className="material-symbols-rounded" style={{ fontSize: '20px' }}>upload_file</span>
+                          Upload PDF
+                        </div>
                       </React.Fragment>
                     ) : (
-                      <FileSelected fileName={file.name} uploadStatus={uploadStatus} />
+                      <FileSelected
+                        fileName={file.name}
+                        uploadStatus={uploadStatus}
+                        onSpark={handleUploadClick}
+                        errorMessage={errorMessage}
+                      />
                     )}
                   </div>
                 </label>
                 {dragActive && <div id="drag-file-element" onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}></div>}
               </form>
+
+              {!file && (
+                <div className="upload-footer-hint">
+                  <p className="optimized-text">Optimized for time-limited revision</p>
+                  <p className="trust-cue">Files are deleted after 2 hrs</p>
+                  <p className="upload-tip" style={{ background: 'transparent', padding: 0 }}>
+                    <span style={{ fontWeight: 600 }}>Tip:</span> Upload shorter PDFs for faster results
+                  </p>
+                </div>
+              )}
 
               {file && (
                 <div className="upload-action-container">
@@ -344,14 +376,7 @@ function App() {
                       onComplete={() => setShowResults(true)}
                     />
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      {uploadStatus === 'error' && <p className="error-message shake">{errorMessage}</p>}
-                      <button className={`upload-button ${uploadStatus !== 'idle' && uploadStatus !== 'error' ? 'spark-active' : ''}`} onClick={handleUploadClick}>
-                        <span className="material-symbols-rounded btn-icon">electric_bolt</span>
-                        {uploadStatus === 'error' ? 'Retry Upload' :
-                          (uploadStatus === 'uploading' || uploadStatus === 'success' || uploadStatus === 'analyzing' ? 'Sparking your study guide...' : 'Spark')}
-                      </button>
-                    </div>
+                    null /* Spark button moved inside FileSelected */
                   )}
                 </div>
               )}
@@ -366,21 +391,33 @@ function App() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
                     <path d="M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM13 9V3.5L18.5 9H13Z" />
                   </svg>
-                  {file?.name || 'Your uploaded document'}
+                  <span
+                    onClick={() => {
+                      if (file) {
+                        const fileURL = URL.createObjectURL(file);
+                        window.open(fileURL, '_blank');
+                      }
+                    }}
+                    style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: '4px' }}
+                    title="Click to view PDF"
+                  >
+                    {file?.name || 'Your uploaded document'}
+                  </span>
                 </p>
               </div>
 
 
               <div className="results-section">
                 <h3>
-                  <span>Summary</span>
+                  <span>Study Material</span>
                 </h3>
 
-                {/* Summary Navigation Pills */}
-                <div className="spark-nav-pills" style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                {/* Navigation Pills */}
+                <div className="spark-nav-pills">
                   {[
                     { id: 'cheat-sheet', label: 'Cheat Sheet' },
-                    { id: 'detailed', label: 'Detailed Summary' }
+                    { id: 'detailed', label: 'Exam Guide' },
+                    { id: 'solver', label: 'Question Solver' }
                   ].map(tab => (
                     <button
                       key={tab.id}
@@ -389,61 +426,86 @@ function App() {
                         if (tab.id === 'detailed' && !data.hasDetailedSummary && !data.requestDetailedSummary) {
                           handleGenerateDetailed();
                         }
+                        if (tab.id === 'solver' && !data.unansweredQuestions && !data.requestUnansweredQuestions) {
+                          handleGenerateFeature('unanswered');
+                        }
                       }}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: '20px',
-                        border: activeSummaryTab === tab.id ? 'none' : '1px solid var(--md-outline-variant)',
-                        background: activeSummaryTab === tab.id ? 'var(--md-primary-container)' : 'transparent',
-                        color: activeSummaryTab === tab.id ? 'var(--md-on-primary-container)' : 'var(--md-on-surface-variant)',
-                        fontFamily: 'var(--md-font-display)',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        outline: 'none'
-                      }}
+                      className={`spark-nav-pill ${activeSummaryTab === tab.id ? 'active' : ''}`}
                     >
                       {tab.label}
                     </button>
                   ))}
                 </div>
 
-                {data.summary ? (
-                  <>
-                    {activeSummaryTab === 'detailed' ? (
-                      // Detailed View Logic
-                      data.hasDetailedSummary ? (
-                        <SummaryCard summary={data.detailedSummary} />
-                      ) : (
-                        <div className="feature-generation-section">
-                          {data.requestDetailedSummary ? (
-                            <>
-                              <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
-                              <p className="loading-text">Generating detailed exam guide...</p>
-                            </>
-                          ) : (
-                            // Should not happen due to auto-trigger on click, but fallback:
-                            <div className="detailed-guide-promo">
-                              <button className="generate-detailed-btn" onClick={handleGenerateDetailed}>
-                                Generate Detailed Guide
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    ) : (
-                      // Cheat Sheet View
+                {/* Content Rendering Logic */}
+                <div className="study-material-content">
+                  {activeSummaryTab === 'cheat-sheet' && (
+                    data.cheatSheetSummary || data.summary ? (
                       <SummaryCard summary={data.cheatSheetSummary || data.summary} />
-                    )}
-                  </>
-                ) : (
-                  <div className="feature-generation-section">
-                    <div className="skeleton skeleton-text" style={{ width: '100%' }}></div>
-                    <div className="skeleton skeleton-text" style={{ width: '90%' }}></div>
-                    <div className="skeleton skeleton-text" style={{ width: '75%' }}></div>
-                  </div>
-                )}
+                    ) : (
+                      <div className="feature-generation-section">
+                        <div className="skeleton skeleton-text" style={{ width: '100%' }}></div>
+                        <div className="skeleton skeleton-text" style={{ width: '90%' }}></div>
+                        <div className="skeleton skeleton-text" style={{ width: '75%' }}></div>
+                      </div>
+                    )
+                  )}
+
+                  {activeSummaryTab === 'detailed' && (
+                    data.hasDetailedSummary ? (
+                      <SummaryCard summary={data.detailedSummary} />
+                    ) : (
+                      <div className="feature-generation-section">
+                        {data.requestDetailedSummary ? (
+                          <>
+                            <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
+                            <p className="loading-text">Generating Exam Guide...</p>
+                          </>
+                        ) : (
+                          <div className="detailed-guide-promo">
+                            <button className="generate-detailed-btn" onClick={handleGenerateDetailed}>
+                              Generate Exam Guide
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+
+                  {activeSummaryTab === 'solver' && (
+                    data.unansweredQuestions ? (
+                      <SummaryCard summary={{ unansweredQuestions: data.unansweredQuestions }} />
+                    ) : (
+                      <div className="feature-generation-section">
+                        {data.requestUnansweredQuestions ? (
+                          <>
+                            <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
+                            <p className="loading-text">Scanning & Solving Unanswered Questions...</p>
+                          </>
+                        ) : data.unansweredQuestionsError ? (
+                          <>
+                            <p className="error-message" style={{ color: 'var(--md-error)', marginBottom: '12px' }}>
+                              {data.unansweredQuestionsError}
+                            </p>
+                            <button
+                              className="generate-feature-btn"
+                              onClick={() => handleGenerateFeature('unanswered')}
+                              disabled={generatingUnansweredQuestions}
+                            >
+                              🔄 Retry Solver
+                            </button>
+                          </>
+                        ) : (
+                          <div className="detailed-guide-promo">
+                            <button className="generate-detailed-btn" onClick={() => handleGenerateFeature('unanswered')}>
+                              Find & Solve Questions
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
 
 
@@ -549,7 +611,7 @@ function App() {
                   <h3>Spark Questions</h3>
 
                   {/* Navigation Pills */}
-                  <div className="spark-nav-pills" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                  <div className="spark-nav-pills">
                     {[
                       { id: 'mcq', label: 'MCQs' },
                       { id: 'long', label: 'Long Answers' },
@@ -569,19 +631,7 @@ function App() {
                             handleGenerateFeature('probable');
                           }
                         }}
-                        style={{
-                          padding: '8px 16px',
-                          borderRadius: '20px',
-                          border: activeQuizTab === tab.id ? 'none' : '1px solid var(--md-outline-variant)',
-                          background: activeQuizTab === tab.id ? 'var(--md-primary-container)' : 'transparent',
-                          color: activeQuizTab === tab.id ? 'var(--md-on-primary-container)' : 'var(--md-on-surface-variant)',
-                          fontFamily: 'var(--md-font-display)',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease',
-                          outline: 'none'
-                        }}
+                        className={`spark-nav-pill ${activeQuizTab === tab.id ? 'active' : ''}`}
                       >
                         {tab.label}
                       </button>
@@ -739,22 +789,24 @@ function App() {
           <div className="footer-divider"></div>
           <p>Made with <span className="material-icons heart">favorite</span> by <strong>Team Genesis</strong></p>
         </footer >
-      </div>
+      </div >
 
       {/* Hidden Printable Component */}
-      {showResults && data && (
-        <div
-          id="printable-content"
-          className="printable-wrapper"
-        >
-          <PrintableStudyGuide
-            ref={printRef}
-            data={data}
-            fileName={file?.name || 'Document'}
-            quizAnswers={quizAnswers}
-          />
-        </div>
-      )}
+      {
+        showResults && data && (
+          <div
+            id="printable-content"
+            className="printable-wrapper"
+          >
+            <PrintableStudyGuide
+              ref={printRef}
+              data={data}
+              fileName={file?.name || 'Document'}
+              quizAnswers={quizAnswers}
+            />
+          </div>
+        )
+      }
     </>
   );
 }

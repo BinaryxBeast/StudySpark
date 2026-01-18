@@ -2,6 +2,7 @@ import React from 'react';
 import '../App.css';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
+import rehypeRaw from 'rehype-raw';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
@@ -23,7 +24,7 @@ const SummaryCard = ({ summary }) => {
                         <div className="markdown-body">
                             <ReactMarkdown
                                 remarkPlugins={[remarkMath]}
-                                rehypePlugins={[rehypeKatex]}
+                                rehypePlugins={[rehypeKatex, rehypeRaw]}
                             >
                                 {cheatSheetContent}
                             </ReactMarkdown>
@@ -49,6 +50,93 @@ const SummaryCard = ({ summary }) => {
                                 </li>
                             ))}
                         </ul>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- MODE 3: EXAM GUIDE (New JSON structure) ---
+    if (summary.exam_guide) {
+        return (
+            <div className="summary-card detailed-mode markdown-mode">
+                <div className="summary-content">
+                    {/* Analysis Header */}
+                    {summary.analysis && (
+                        <div className="analysis-header" style={{
+                            marginBottom: '16px',
+                            padding: '12px',
+                            background: 'var(--md-surface-variant)',
+                            borderRadius: '8px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            gap: '16px',
+                            flexWrap: 'wrap',
+                            color: 'var(--md-on-surface-variant)'
+                        }}>
+                            <span><strong>Subject:</strong> {summary.analysis.detected_subject}</span>
+                            <span><strong>Level:</strong> {summary.analysis.academic_level}</span>
+                            <span><strong>Type:</strong> {summary.analysis.exam_type}</span>
+                            {summary.analysis.reasoning_summary && (
+                                <div style={{ width: '100%', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(0,0,0,0.1)', fontStyle: 'italic' }}>
+                                    "{summary.analysis.reasoning_summary}"
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    <div className="summary-text-content scrollable">
+                        <div className="markdown-body">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath]}
+                                rehypePlugins={[rehypeKatex, rehypeRaw]}
+                            >
+                                {summary.exam_guide}
+                            </ReactMarkdown>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // --- MODE 4: QUESTION SOLVER (Unanswered Questions) ---
+    if (summary.unansweredQuestions) {
+        if (summary.unansweredQuestions.length === 0) {
+            return (
+                <div className="summary-card detailed-mode">
+                    <div className="summary-content" style={{ textAlign: 'center', padding: '48px 24px', opacity: 0.8 }}>
+                        <span className="material-symbols-rounded" style={{ fontSize: '48px', color: 'var(--md-primary)', marginBottom: '16px' }}>
+                            check_circle
+                        </span>
+                        <h3>No Unanswered Questions Found</h3>
+                        <p>It looks like this document already has solutions for all its questions, or consists mainly of examples and theory.</p>
+                    </div>
+                </div>
+            );
+        }
+
+        let solverMarkdown = "";
+        summary.unansweredQuestions.forEach((item, index) => {
+            solverMarkdown += `### Q${index + 1}. ${item.question}\n\n`;
+            solverMarkdown += `**Solution:**\n\n`;
+            solverMarkdown += `${item.solution}\n\n`;
+            if (index < summary.unansweredQuestions.length - 1) {
+                solverMarkdown += `---\n\n`;
+            }
+        });
+
+        return (
+            <div className="summary-card detailed-mode markdown-mode">
+                <div className="summary-content">
+                    <div className="summary-text-content scrollable">
+                        <div className="markdown-body">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkMath]}
+                                rehypePlugins={[rehypeKatex, rehypeRaw]}
+                            >
+                                {solverMarkdown}
+                            </ReactMarkdown>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -113,7 +201,7 @@ const SummaryCard = ({ summary }) => {
                         <div className="markdown-body">
                             <ReactMarkdown
                                 remarkPlugins={[remarkMath]}
-                                rehypePlugins={[rehypeKatex]}
+                                rehypePlugins={[rehypeKatex, rehypeRaw]}
                             >
                                 {detailedMarkdown}
                             </ReactMarkdown>

@@ -200,18 +200,30 @@ body {
 }
 
 /* Upload Another Button - Outlined Style */
+/* Upload Another Button - Text/Ghost Style (De-emphasized) */
 .reset-button {
   background: transparent;
-  border: 1px solid var(--md-outline);
-  color: var(--md-primary);
-  padding: var(--md-spacing-sm) var(--md-spacing-xl);
+  border: 1px solid transparent;
+  /* No visible border by default */
+  color: var(--md-on-surface-variant);
+  /* Neutral grey */
+  padding: 6px 16px;
+  /* Slightly smaller padding */
   border-radius: var(--md-radius-full);
   font-family: var(--md-font-display);
-  font-size: 14px;
+  font-size: 13px;
+  /* Smaller font */
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   letter-spacing: 0.1px;
+  opacity: 0.8;
+}
+
+.reset-button:hover {
+  background-color: var(--md-surface-container-high);
+  color: var(--md-primary);
+  opacity: 1;
 }
 
 .reset-button:hover {
@@ -246,20 +258,47 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: var(--md-spacing-md) var(--md-spacing-md) var(--md-spacing-lg);
+  padding: 0 var(--md-spacing-md) var(--md-spacing-xl);
   animation: fadeInUp 0.4s ease-out;
 }
 
 /* Hero Section */
 .hero-section {
   text-align: center;
-  text-align: center;
   margin-bottom: var(--md-spacing-lg);
+  /* Reduced from xl to lg (16px) */
   /* Animation props */
   max-height: 200px;
   opacity: 1;
   transition: all 0.6s cubic-bezier(0.2, 0, 0, 1);
   overflow: hidden;
+}
+
+/* ... (lines 262-471 skipped) ... */
+
+/* Material 3 Filled Tonal Button inside Card */
+.upload-pdf-btn-card {
+  background-color: var(--md-primary);
+  /* Changed to Primary for dominance */
+  color: var(--md-on-primary);
+  border: 1px solid #000000;
+  height: 48px;
+  padding: 0 32px;
+  border-radius: 24px;
+  /* Pill shape */
+  font-family: var(--md-font-display);
+  font-size: 15px;
+  /* Slightly larger text */
+  font-weight: 600;
+  /* Bolder text */
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--md-spacing-2xl);
+  /* Significantly increased from md to 2xl */
+  box-shadow: var(--md-elevation-1);
 }
 
 .hero-section.hidden {
@@ -272,40 +311,80 @@ body {
 
 .hero-headline {
   font-family: 'Google Sans', var(--md-font-display);
-  font-size: 36px;
-  font-weight: 400;
+  font-size: 57px;
+  /* Display Small / Medium size range */
+  font-weight: 700;
+  /* Bolder */
   color: var(--md-on-surface);
-  margin: 0 0 var(--md-spacing-sm);
-  letter-spacing: -0.5px;
+  line-height: 1.1;
+  margin: 0 0 var(--md-spacing-md);
+  letter-spacing: -0.25px;
 }
 
 .hero-tagline {
   font-family: var(--md-font-body);
-  font-size: 16px;
+  font-size: 18px;
+  /* Body Large */
   color: var(--md-on-surface-variant);
+  /* Lower emphasis */
   margin: 0 0 var(--md-spacing-md);
   line-height: 1.5;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.trust-badge {
-  display: inline-flex;
+/* Upload Footer Hint */
+.upload-footer-hint {
+  margin-top: var(--md-spacing-xs);
+  /* Reduced from lg to xs (4px) to pull Optimized text closer */
+  text-align: center;
+  animation: fadeInUp 0.5s ease-out;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background-color: var(--md-primary-container);
-  color: var(--md-primary);
-  border-radius: var(--md-radius-full);
-  font-size: 12px;
-  font-weight: 500;
+  gap: var(--md-spacing-sm);
 }
 
-.trust-badge svg {
-  flex-shrink: 0;
+.optimized-text {
+  font-family: var(--md-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+  margin: 0;
+}
+
+.trust-cue {
+  font-size: 13px;
+  color: var(--md-on-surface-variant);
+  opacity: 0.8;
+  margin-bottom: 4px;
+}
+
+.upload-tip {
+  font-size: 13px;
+  color: var(--md-on-surface-variant);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--md-surface-container);
+  padding: 6px 16px;
+  border-radius: var(--md-radius-full);
+  margin-top: var(--md-spacing-xl);
+  /* Increased separation */
+}
+
+.tip-badge {
   color: var(--md-primary);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 #form-file-upload {
-  height: 250px;
+  height: auto;
+  min-height: 320px;
   width: 100%;
   max-width: 520px;
   position: relative;
@@ -317,31 +396,45 @@ body {
 
 #label-file-upload {
   height: 100%;
+  min-height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px dashed var(--md-outline-variant);
-  border-radius: var(--md-radius-xl);
-  background-color: var(--md-surface-container-low);
+  border: 1px solid transparent;
+  /* Prepare for hover border */
+  border-radius: 28px;
+  /* MD3 28dp */
+  background-color: var(--md-surface-container);
+  /* Subtle primary tint (stronger than low) */
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+  transition: background-color 0.4s cubic-bezier(0.2, 0, 0, 1),
+    border-color 0.3s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.3s cubic-bezier(0.2, 0, 0, 1);
   box-shadow: var(--md-elevation-1);
+  /* Slight elevation */
+  position: relative;
+  overflow: hidden;
 }
 
 #label-file-upload:hover {
-  border-color: var(--md-primary);
-  background-color: var(--md-surface-container-high);
+  /* border-color: var(--md-primary); Removed as per user request */
+  background-color: var(--md-surface-container-low);
+  /* Lightens on hover (Low is lighter than Container) */
   box-shadow: var(--md-elevation-2);
 }
 
 #label-file-upload:hover .upload-icon-wrapper {
   transform: scale(1.05);
+  /* Icon subtly scales */
 }
 
 #label-file-upload.drag-active {
-  border-color: var(--md-primary);
   background-color: var(--md-primary-container);
-  box-shadow: var(--md-elevation-2);
+  /* Fills with primary-tonal color */
+  border-color: var(--md-primary);
+  box-shadow: var(--md-elevation-3);
+  transform: scale(1.01);
+  /* Subtle scale on drag */
 }
 
 .upload-card-content {
@@ -350,28 +443,30 @@ body {
   align-items: center;
   text-align: center;
   padding: var(--md-spacing-2xl);
+  width: 100%;
 }
 
 .upload-icon-wrapper {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   background-color: var(--md-primary-container);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: var(--md-spacing-lg);
+  margin-bottom: var(--md-spacing-xl);
   transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .upload-icon-wrapper svg {
-  width: 32px;
-  height: 32px;
-  color: var(--md-primary);
+  width: 36px;
+  height: 36px;
+  color: var(--md-on-primary-container);
 }
 
 .upload-icon-wrapper.file-selected-icon {
   background-color: var(--md-success-container);
+  color: var(--md-on-success-container);
 }
 
 .upload-icon-wrapper.pulse {
@@ -387,28 +482,75 @@ body {
 
   50% {
     transform: scale(1.08);
+
   }
 }
 
 .upload-text {
   font-family: 'Google Sans', var(--md-font-display);
-  font-size: 18px;
-  font-weight: 500;
+  font-size: 22px;
+  font-weight: 400;
   color: var(--md-on-surface);
-  margin-bottom: var(--md-spacing-sm);
+  margin-bottom: var(--md-spacing-xl);
+  /* Increased spacing below main instruction */
 }
 
 .upload-helper-combined {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--md-on-surface-variant);
-  margin-bottom: var(--md-spacing-lg);
+  margin-bottom: 4px;
+  /* Reduced spacing between secondary lines */
+  font-weight: 400;
+  /* Lighter weight */
 }
 
 .upload-reassurance {
   font-size: 12px;
-  color: var(--md-primary);
-  opacity: 0.8;
+  color: var(--md-on-surface-variant);
+  /* Neutral/Grey now */
+  opacity: 0.9;
+  font-weight: 400;
+  /* Lighter weight */
+  margin-bottom: var(--md-spacing-xl);
 }
+
+/* Material 3 Filled Tonal Button inside Card */
+.upload-pdf-btn-card {
+  background-color: var(--md-primary);
+  /* Solid Blue */
+  color: var(--md-on-primary);
+  border: none;
+  height: 56px;
+  /* Slightly larger */
+  padding: 0 40px;
+  /* Wider */
+  border-radius: 28px;
+  /* Pill shape */
+  font-family: var(--md-font-display);
+  font-size: 16px;
+  /* Larger font */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--md-spacing-md);
+  box-shadow: var(--md-elevation-1);
+}
+
+.upload-pdf-btn-card:hover {
+  background-color: #0F4FAB;
+  /* Darker blue on hover */
+  color: #FFFFFF;
+  box-shadow: var(--md-elevation-2);
+}
+
+/* Override hover behavior for better visibility if needed */
+/* #label-file-upload:hover .upload-pdf-btn-card {
+   background-color: var(--md-primary);
+   color: var(--md-on-primary);
+} */
 
 .file-name-selected {
   font-family: var(--md-font-display);
@@ -439,11 +581,11 @@ body {
 #drag-file-element {
   position: absolute;
   inset: 0;
-  border-radius: var(--md-radius-lg);
+  border-radius: 28px;
   z-index: 5;
 }
 
-/* Upload Button - Filled MD3 Spark Style */
+/* Upload Button - Filled MD3 Spark Style (Main Action) */
 .upload-button {
   margin-top: var(--md-spacing-lg);
   background-color: var(--md-primary);
@@ -947,13 +1089,68 @@ body {
 
 .results-section h3 {
   font-family: var(--md-font-display);
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--md-on-surface);
+  font-size: 18px;
+  /* Slightly larger for clarity */
+  font-weight: 600;
+  /* Bolder black */
+  color: #000000;
+  /* Strict Black for hierarchy */
   margin: 0 0 var(--md-spacing-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+/* Hero Section (Summary) - Visual Dominance */
+.results-section:first-child {
+  background-color: var(--md-surface);
+  /* Lighter background than peers */
+  border: 1px solid var(--md-outline-variant);
+  /* Subtle border definition */
+  box-shadow: var(--md-elevation-2);
+  /* Slightly higher lift */
+  padding: var(--md-spacing-2xl);
+  /* More breathing room */
+}
+
+/* Nav Pills - Consolidated Styles */
+.spark-nav-pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.spark-nav-pill {
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  font-family: var(--md-font-display);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  opacity: 0.9;
+  /* Inactive is subtle */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spark-nav-pill:hover {
+  background-color: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+  opacity: 1;
+}
+
+.spark-nav-pill.active {
+  background-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  font-weight: 600;
+  opacity: 1;
 }
 
 /* =========================================
@@ -1183,7 +1380,9 @@ body {
   perspective: 1000px;
   min-width: 300px;
   width: 300px;
-  height: 200px;
+  width: 300px;
+  height: 180px;
+  /* Reduced height from 200px */
   cursor: pointer;
   scroll-snap-align: start;
   flex-shrink: 0;
@@ -1365,6 +1564,8 @@ body {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   background-color: var(--md-surface);
+  min-height: auto;
+  /* Allow shrink */
 }
 
 .quiz-option:hover:not(.disabled) {
@@ -1395,8 +1596,10 @@ body {
 
 /* Correct Answer State */
 .quiz-option.correct {
-  border-color: var(--md-success) !important;
-  background-color: var(--md-success-container) !important;
+  border-color: rgba(30, 111, 66, 0.5) !important;
+  /* Muted Green Border */
+  background-color: rgba(168, 245, 192, 0.4) !important;
+  /* Muted Green BG */
 }
 
 .quiz-option.correct .option-marker {
@@ -1447,8 +1650,10 @@ body {
 }
 
 .feedback-message.positive {
-  background-color: var(--md-success-container);
-  color: var(--md-on-success-container);
+  background-color: rgba(168, 245, 192, 0.4);
+  /* Muted positive bg */
+  color: #051F11;
+  /* Dark green text stays legible */
 }
 
 .feedback-message.negative {

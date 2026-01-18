@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
+import rehypeRaw from 'rehype-raw';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import '../markdown.css';
@@ -41,7 +42,12 @@ const PrintableStudyGuide = React.forwardRef(({ data, fileName, quizAnswers = {}
       return JSON.stringify(summary.cheat_sheet, null, 2);
     }
 
-    // If it's a detailed summary object, build markdown
+    // If it's the new Exam Guide format
+    if (summary.exam_guide) {
+      return summary.exam_guide;
+    }
+
+    // If it's a detailed summary object (Legacy), build markdown
     if (summary.definitions || summary.must_revise || summary.important_questions) {
       let markdown = "";
 
@@ -179,19 +185,46 @@ const PrintableStudyGuide = React.forwardRef(({ data, fileName, quizAnswers = {}
         <div style={sectionContainerStyle}>
           <h2 style={sectionTitleStyle}>Cheat Sheet</h2>
           <div className="markdown-body" style={{ ...bodyStyle }}>
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
               {cheatSheetContent}
             </ReactMarkdown>
           </div>
         </div>
       )}
 
-      {/* Summary Section - Detailed Summary */}
+      {/* Summary Section - Exam Guide */}
       {detailedSummaryContent && (
         <div style={sectionContainerStyle}>
-          <h2 style={sectionTitleStyle}>Detailed Summary</h2>
+          <h2 style={sectionTitleStyle}>Exam Guide</h2>
           <div className="markdown-body" style={{ ...bodyStyle }}>
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+
+            {/* Context Detection Display */}
+            {data.detailedSummary?.analysis && (
+              <div style={{
+                marginBottom: '24px',
+                padding: '16px',
+                backgroundColor: '#f8f9fa',
+                border: `1px solid ${THEME.border}`,
+                borderRadius: '8px',
+                fontSize: FONTS.subHeader
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div><strong style={{ color: THEME.muted }}>Subject:</strong> {data.detailedSummary.analysis.detected_subject}</div>
+                  <div><strong style={{ color: THEME.muted }}>Level:</strong> {data.detailedSummary.analysis.academic_level}</div>
+                  <div><strong style={{ color: THEME.muted }}>Exam Type:</strong> {data.detailedSummary.analysis.exam_type}</div>
+                  {data.detailedSummary.analysis.exam_confidence && (
+                    <div><strong style={{ color: THEME.muted }}>Confidence:</strong> {data.detailedSummary.analysis.exam_confidence}</div>
+                  )}
+                  {data.detailedSummary.analysis.reasoning_summary && (
+                    <div style={{ gridColumn: '1 / -1', marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${THEME.border}`, fontStyle: 'italic', fontSize: FONTS.body, color: THEME.muted }}>
+                      "{data.detailedSummary.analysis.reasoning_summary}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
               {detailedSummaryContent}
             </ReactMarkdown>
           </div>

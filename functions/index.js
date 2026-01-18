@@ -58,8 +58,44 @@ function cleanAndParseJSON(text) {
 
         return JSON.parse(cleanText);
     } catch (e) {
-        logger.error("Failed to parse JSON. Raw text:", text);
-        throw e;
+        logger.warn("JSON parse failed, attempting latex cleanup:", e.message);
+        try {
+            // Attempt to fix common LaTeX backslash issues in JSON
+            // 1. Remove markdown code blocks again just in case (already done but good to be safe)
+            let cleanText = text.replace(/```json\s*|\s*```/g, "").trim();
+            const firstOpen = cleanText.indexOf('{');
+            const lastClose = cleanText.lastIndexOf('}');
+            if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+                cleanText = cleanText.substring(firstOpen, lastClose + 1);
+            }
+
+            // 2. Escape backslashes that are NOT already escaped
+            // This regex looks for a backslash that is NOT followed by:
+            // - another backslash (already escaped)
+            // - a double quote (valid escape)
+            // - common control chars like n, r, t, b, f (valid escapes)
+            // But this is risky. A safer approach for AI output is often:
+            // Replace single backslash with double backslash, but handle specific cases.
+
+            // Simpler approach: If JSON.parse failed, it's likely due to invalid escapes.
+            // Let's try to global replace \ with \\, but we must protect already escaped chars.
+            // Actually, the most common error is `\frac` -> invalid escape.
+
+            // Strategy: Replace all \ with \\, EXCEPT valid json escapes like \", \\, \n, \r, \t
+            // Regex to find backslash not part of valid escape:
+            // (?<!\\)\\(?!["\\/bfnrt])
+            // explanation:
+            // (?<!\\) : not preceded by \ (so it's not the second \ of \\)
+            // \\      : the backslash itself
+            // (?!["\\/bfnrt]) : not followed by valid escape chars
+
+            const sanitizedText = cleanText.replace(/(?<!\\)\\(?!["\\/bfnrtu])/g, "\\\\");
+            return JSON.parse(sanitizedText);
+
+        } catch (retryError) {
+            logger.error("JSON Cleanup failed:", retryError);
+            throw e; // Throw original error
+        }
     }
 }
 
@@ -284,8 +320,9 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
     const requestDetailedSummary = newData.requestDetailedSummary && !previousData.requestDetailedSummary;
     const requestLongQuestions = newData.requestLongQuestions && !previousData.requestLongQuestions;
     const requestProbableQuestions = newData.requestProbableQuestions && !previousData.requestProbableQuestions;
+    const requestUnansweredQuestions = newData.requestUnansweredQuestions && !previousData.requestUnansweredQuestions;
 
-    if (!requestFlashcards && !requestQuiz && !requestDetailedSummary && !requestLongQuestions && !requestProbableQuestions) {
+    if (!requestFlashcards && !requestQuiz && !requestDetailedSummary && !requestLongQuestions && !requestProbableQuestions && !requestUnansweredQuestions) {
         return; // No new requests
     }
 
@@ -299,6 +336,7 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
         if (requestDetailedSummary) errorUpdate.summary = { error: "File source missing. Please re-upload." };
         if (requestLongQuestions) errorUpdate.longQuestions = { error: "File source missing. Please re-upload." };
         if (requestProbableQuestions) errorUpdate.probableQuestions = { error: "File source missing. Please re-upload." };
+        if (requestUnansweredQuestions) errorUpdate.unansweredQuestions = { error: "File source missing. Please re-upload." };
 
         await docRef.set(errorUpdate, { merge: true });
         return logger.error("File URI missing for generation request");
@@ -337,54 +375,65 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
                 - Handle both printed and handwritten content
                 - Analyze all visual content including diagrams, equations, and annotations
                 - If the PDF contains only images, treat them as the primary source material
-                
-                You are a strict, exam-focused study assistant.
-                I will provide you with a PDF (study material) which may be handwritten, typed, or scanned.
-                Your task is to generate a DETAILED REVISION GUIDE optimized for EXAMS.
-                INCLUDE ONLY WHAT IS NECESSARY FOR EXAMS.
-                
-                STRUCTURE THE OUTPUT INTO THESE SECTIONS:
-                
-                1. IMPORTANT DEFINITIONS
-                - Write crisp, exam-ready definitions
-                - Avoid unnecessary theory
-                - Highlight keywords in each definition
-                
-                2. MUST-REVISE CONCEPTS
-                - List concepts students MUST revise before exams
-                - Explain briefly why each concept is important
-                
-                3. MOST IMPORTANT QUESTIONS (Exam-Oriented)
-                - Generate likely exam questions
-                - Label each question as:
-                  - Very Important
-                  - Important
-                  - Optional
-                
-                4. WHAT TO FOCUS ON (Exam Strategy)
-                - Tell the student:
-                  - What to memorize
-                  - What to understand
-                  - What can be skipped if short on time
-                
-                5. COMMON MISTAKES / TRAPS
-                - Points where students usually lose marks
-                - Conceptual confusions
-                
-                STRICT RULES:
-                - No storytelling
-                - No unnecessary examples
-                - Keep explanations concise
-                - Think like a professor setting the exam
-                
-                OUTPUT FORMAT JSON:
+
+                You are a strict academic classifier and exam-oriented study assistant.
+                Your job is to DETECT context using a multi-stage process, not to guess.
+
+                ### STAGE 1: SIGNAL EXTRACTION
+                Extract (internally) clear signals found in the text:
+                - **Subject Signals**: Key terms, formulas, chapter names.
+                - **Academic Level Signals**: Class/standard mentions, depth of explanation.
+                - **Exam Pattern Signals**: MCQ usage, numerical focus, theory focus.
+
+                ### STAGE 2: SUBJECT SCORING & SELECTION
+                Score candidate subjects based on signals. Select the highest ONLY if score >= 70.
+                Otherwise mark as "Uncertain".
+
+                ### STAGE 3: ACADEMIC LEVEL SCORING
+                Score levels (Class 6-8, 9-10, 11-12, Undergrad, Postgrad, Competitive).
+                Select highest ONLY if it exceeds others by >= 15 points.
+                Otherwise mark as "Mixed / Uncertain".
+
+                ### STAGE 4: EXAM TYPE ELIMINATION
+                Evaluate: School, University, JEE, NEET, UPSC, Other Competitive.
+                - Do NOT select JEE/NEET/UPSC unless explicit competitive signals exist.
+                - Presence of MCQs alone is NOT sufficient.
+                - Select a named exam ONLY IF confidence >= 80%.
+                - Otherwise use "Competitive Exam (Uncertain)" or "Academic Exam (Uncertain)".
+
+                ### STAGE 5 & 6: OUTPUT GENERATION
+                Generate the final JSON output containing the analysis and the Exam Guide.
+
+                **Exam Guide Rules:**
+                - If exam_type is uncertain -> keep guidance generic.
+                - If competitive -> focus on traps & patterns.
+                - If academic -> focus on answer structure & keywords.
+                - SECTIONS ONLY:
+                  1. Exam Importance & Weightage
+                  2. Common Question Patterns
+                  3. Answer Writing Blueprint
+                  4. Must-Write Keywords
+                  5. Common Mistakes
+                  6. Diagrams / Tables to Practice
+                  7. Last-Day Revision Strategy
+
+                **OUTPUT FORMAT JSON (strict):**
                 {
-                  "definitions": [{ "term": "...", "definition": "..." }],
-                  "must_revise": [{ "concept": "...", "reason": "..." }],
-                  "important_questions": [{ "question": "...", "importance": "Very Important" }],
-                  "exam_focus": [{ "topic": "...", "strategy": "Memorize/Understand/Skip" }],
-                  "common_mistakes": [{ "point": "...", "correction": "..." }]
-                }`;
+                  "analysis": {
+                    "detected_subject": "Subject Name",
+                    "subject_confidence": "Percentage",
+                    "academic_level": "Level",
+                    "level_confidence": "Percentage",
+                    "exam_type": "Exam Pattern",
+                    "exam_confidence": "Percentage",
+                    "reasoning_summary": "1-2 lines explaining why this was chosen based on the signals."
+                  },
+                  "exam_guide": "MARKDOWN_STRING_CONTAINING_THE_FULL_GUIDE"
+                }
+                
+                IMPORTANT:
+                - The "exam_guide" field must be a valid markdown string with nice formatting.
+                - Do NOT include the "analysis" data inside the markdown string.`;
 
                 const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
                 const output = cleanAndParseJSON(result.response.text());
@@ -562,6 +611,180 @@ OUTPUT FORMAT (strict JSON):
             }
         }
 
+        if (requestUnansweredQuestions) {
+            try {
+                logger.log("Generating Unanswered Questions Solutions...");
+                const prompt = `
+                IMPORTANT: This PDF may contain handwritten notes, scanned images, or typed text.
+                You MUST:
+                - Read and extract text from ALL images in the PDF
+                - Process handwritten text using OCR
+                - Handle both printed and handwritten content
+                - Analyze all visual content including diagrams, equations, and annotations
+                - If the PDF contains only images, treat them as the primary source material
+                
+                You are an expert academic tutor.
+                I will provide you with a PDF (study material).
+
+                Your task is to **Scan, Filter, and Solve ONLY UNANSWERED QUESTIONS** found in the PDF.
+
+                ### 1. SCANNING & IDENTIFICATION
+                Scan the entire document for "Question Patterns":
+                - "Q1", "Question:", "Problem", "Exercise", "Solve", "Evaluate", "Explain", etc.
+                - Short answer questions, long answer questions, numerical problems.
+
+                ### 2. CLASSIFICATION & FILTERING (STRICT)
+                For every question found, you must classify it:
+                
+                🟢 **Answered Question** -> IGNORE
+                - If the solution/answer is present immediately after or elsewhere in the text (e.g., at the end of the chapter).
+                - Look for "Solution", "Answer", "Sol:", "Ans:", or worked-out steps.
+                
+                🟡 **Example Question** -> IGNORE
+                - If labeled as "Example", "Solved Example", "Illustration".
+                
+                🔴 **Unanswered Question** -> **KEEP & SOLVE**
+                - Only if NO solution is provided in the PDF.
+                - If a question has "Hints" but no full solution, treat it as UNANSWERED.
+
+                ### 3. GENERATION STRATEGY
+                
+                **A. DEDUPLICATION (CRITICAL)**
+                - Check if a question is repeated (e.g., once in text, once in summary).
+                - Solve it ONLY ONCE.
+                - If Q1 and Q5 are identical, output only one entry.
+
+                **B. COMPLETENESS & BREVITY (CRITICAL)**
+                - Ensure the solution is COMPLETE. Do not cut off mid-sentence.
+                - **KEEP ANSWERS SHORT**: Use 3-5 lines per solution. Show only final steps.
+                - If the solution is long, summarize the steps clearly.
+                - **LIMIT OUTPUT**: Return a MAXIMUM of 5-8 questions. If more exist, prioritize the most important/difficult ones.
+                - Use concise math notation (e.g., "$x=2$" not "therefore x equals 2").
+
+                **C. HIGH VOLUME / BATCH MODE (IMPORTANT)**
+                - **IF** you find **More than 10 similar questions** (e.g., 20 integration problems of the same type):
+                   1. **Group them**.
+                   2. Output a SINGLE entry for the group.
+                   3. **Question Text**: "Method to solve Q[Start]-Q[End] (Type: [Topic])"
+                   4. **Solution**:
+                      - Explain the **General Method** / Formula clearly.
+                      - Solve ONE representative question step-by-step as an example.
+                      - List the Final Answers for the rest (if possible to calculate quickly) or just leave it at the method.
+                - **ELSE** (If questions are distinct or few):
+                   - Solve each one individually and precisely.
+                   - Be CONCISE. avoid explaining "Why" unless asked. Just solve it.
+
+                ### RULES
+                - **MATH FORMATTING (CRITICAL)**: verify every equation.
+                   - Use **LaTeX** for ALL math expressions, equations, and symbols.
+                   - Wrap inline math in single dollar signs: $x^2 + y^2 = r^2$
+                   - Wrap block math/equations in double dollar signs:
+                     $$
+                     \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+                     $$
+                   - Use "\\begin{bmatrix} ... \\end{bmatrix}" for matrices.
+                   - **IMPORTANT**: Since you are outputting JSON string, you must **DOUBLE ESCAPE** all backslashes.
+                     - Wrong: "\frac"
+                     - Correct: "\\frac"
+                     - Wrong: "\\begin"
+                     - Correct: "\\\\begin"
+                - **NO EXAMPLES**: Do not output questions that are examples.
+                - **NO REPEATS**: Do not output questions that already have answers in the PDF.
+                - **NO HALLUCINATIONS**: Do NOT invent new questions. Only solve what is in the PDF.
+                - **GLOBAL CHECK**: Before marking as unanswered, check if the answer key is at the end of the PDF.
+
+                OUTPUT FORMAT JSON (strict):
+                {
+                  "unansweredQuestions": [
+                    {
+                      "question": "The exact question text OR 'Method for QX-QY'",
+                      "solution": "Use markdown formatting. See SOLUTION FORMATTING below.",
+                      "confidence": 0.95,
+                      "context": "Briefly, where was this found? e.g., 'Chapter 3 Exercises'"
+                    }
+                  ]
+                }
+
+                ### SOLUTION FORMATTING (EXAM-READY OUTPUT)
+                
+                **0. CRITICAL: DO NOT include "Solution:" heading**
+                - The frontend already adds "Solution:" label
+                - Start directly with the content (e.g., "Let $A$ be..." or the code block)
+                
+                **1. QUESTION TEXT: Clean and format**
+                - If copying question from PDF, convert raw LaTeX to proper format
+                - Wrong: "In the matrix A = \\begin{bmatrix}..."
+                - Correct: Keep question text simple, move complex matrices to solution
+                
+                **2. STRUCTURE: Use stepwise logical flow**
+                - Use this proof structure:
+                  1. State given/let statement
+                  2. "**Define:**" block for definitions
+                  3. "**Now,**" or "**Then,**" for derivations
+                  4. "**Hence,**" or "**Therefore,**" for conclusion
+                
+                **3. DISPLAY MATH: Break equations out of paragraphs**
+                - Important equations should be on their OWN LINE using $$ blocks
+                - Add blank lines before and after $$ blocks
+                - Inline math ($...$) only for small terms like $x$, $A^T$
+                
+                **4. MATRICES: Display on separate lines**
+                - NEVER put matrices inline with text
+                - Use display blocks:
+                  $$A = \\\\begin{pmatrix} 1 & 2 \\\\\\\\ 3 & 4 \\\\end{pmatrix}$$
+                
+                **5. CODE BLOCKS (CRITICAL FOR PROGRAMMING QUESTIONS)**
+                - For ANY code solution, use FENCED CODE BLOCKS with language specifier
+                - MUST include proper NEWLINES (\\n) between lines of code
+                - Format: \`\`\`python\\ncode line 1\\ncode line 2\\n\`\`\`
+                - Example for a loop:
+                  \`\`\`python\\nn = 3\\nfor i in range(1, n + 1):\\n    print('*' * i)\\n\`\`\`
+                - WRONG (single line): "python n = 3 for i in range(n): print('*' * i)"
+                - CORRECT (multi-line with fenced block):
+                  \`\`\`python\\nn = 3\\nfor i in range(1, n + 1):\\n    print('*' * i)\\n\`\`\`
+                - Include proper INDENTATION using spaces in the code
+                - Always specify language: python, java, c, cpp, javascript, etc.
+                
+                **6. MULTI-PART ANSWERS: One per line**
+                **(a)** [answer]
+                
+                **(b)** [answer]
+                
+                **7. COUNTEREXAMPLES: Be logically correct**
+                - For "If P then Q is False": Show P is true but Q is false
+                
+                **EXAMPLE OUTPUT (Math):**
+                {
+                  "question": "Show that a square matrix can be written as sum of symmetric and skew-symmetric matrices.",
+                  "solution": "Let $A$ be a square matrix.\\n\\n**Define:**\\n\\n$$S = \\\\frac{1}{2}(A + A^T)$$\\n\\n$$K = \\\\frac{1}{2}(A - A^T)$$\\n\\n**Now,**\\n\\n$S^T = S$ ⟹ $S$ is symmetric\\n\\n$K^T = -K$ ⟹ $K$ is skew-symmetric\\n\\n**Hence,** $A = S + K$"
+                }
+                
+                **EXAMPLE OUTPUT (Code):**
+                {
+                  "question": "Write a program to print a star pattern for n=3",
+                  "solution": "\`\`\`python\\nn = 3\\nfor i in range(1, n + 1):\\n    print('*' * i)\\n\`\`\`\\n\\n**Output:**\\n\`\`\`\\n*\\n**\\n***\\n\`\`\`"
+                }
+                
+                If NO unanswered questions are found, return:
+                { "unansweredQuestions": [] }
+                `;
+
+                const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
+                const output = cleanAndParseJSON(result.response.text());
+                batch.update(docRef, { unansweredQuestions: output.unansweredQuestions, requestUnansweredQuestions: false });
+                hasUpdates = true;
+            } catch (error) {
+                logger.error("Error generating unanswered questions:", error);
+                batch.update(docRef, {
+                    requestUnansweredQuestions: false,
+                    unansweredQuestionsError: error.message.includes('429')
+                        ? 'Rate limit reached. Please try again in a few moments.'
+                        : 'Failed to generate solutions. Please try again.'
+                });
+                hasUpdates = true;
+            }
+        }
+
         if (requestQuiz) {
             try {
                 logger.log("Generating Quiz...");
@@ -581,8 +804,9 @@ OUTPUT FORMAT (strict JSON):
                 
                 GUIDELINES:
                 1. **Quantity**: generate exactly 10 questions if the content allows. If the content is too short, generate as many high-quality questions as possible (minimum 5).
-                2. **Difficulty**: Mix straightforward recall questions with conceptual application questions.
-                3. **Relevance**: Focus on key concepts, definitions, and "must-know" facts for exams.
+                2. **Difficulty**: Moderate to Hard. Focus on conceptual deep understanding and application. Avoid simple recall.
+                3. **Formatting**: Do NOT include difficulty tags (e.g., [Hard], (Moderate)) in the question text.
+                4. **Relevance**: Focus on key concepts, definitions, and "must-know" facts for exams.
                 
                 OUTPUT FORMAT JSON (strict):
                 {
@@ -631,7 +855,8 @@ OUTPUT FORMAT (strict JSON):
             requestQuiz: false,
             requestDetailedSummary: false,
             requestLongQuestions: false,
-            requestProbableQuestions: false
+            requestProbableQuestions: false,
+            requestUnansweredQuestions: false
         }, { merge: true });
     }
 });

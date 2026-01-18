@@ -59,7 +59,7 @@ const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, 
                     return (
                         <div key={index} className="question-card">
                             <p className="question-text">
-                                <strong>{index + 1}.</strong> {q.question}
+                                <strong>{index + 1}.</strong> {q.question.replace(/^\[(Hard|Moderate|Easy|Medium)\]\s*/i, '').replace(/^\((Hard|Moderate|Easy|Medium)\)\s*/i, '')}
                             </p>
 
                             <div className="options-list">
@@ -354,7 +354,7 @@ const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, 
             </div>
 
             {/* Navigation Pills */}
-            <div className="spark-nav-pills" style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+            <div className="spark-nav-pills">
                 {[
                     { id: 'mcq', label: 'MCQs' },
                     { id: 'long', label: 'Long Answers' },
@@ -374,22 +374,7 @@ const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, 
                                 onGenerateFeature('probable');
                             }
                         }}
-                        style={{
-                            padding: '8px 16px',
-                            borderRadius: '20px',
-                            border: activeTab === tab.id ? '1px solid transparent' : '1px solid var(--md-outline-variant)',
-                            background: activeTab === tab.id ? 'var(--md-primary-container)' : 'transparent',
-                            color: activeTab === tab.id ? 'var(--md-on-primary-container)' : 'var(--md-on-surface-variant)',
-                            fontFamily: 'var(--md-font-display)',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            outline: 'none',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                        }}
+                        className={`spark-nav-pill ${activeTab === tab.id ? 'active' : ''}`}
                     >
                         {tab.id === 'mcq' && <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>checklist</span>}
                         {tab.id === 'long' && <span className="material-symbols-rounded" style={{ fontSize: '16px' }}>description</span>}
