@@ -115,32 +115,74 @@ const SummaryCard = ({ summary }) => {
             );
         }
 
-        let solverMarkdown = "";
-        summary.unansweredQuestions.forEach((item, index) => {
-            solverMarkdown += `### Q${index + 1}. ${item.question}\n\n`;
-            solverMarkdown += `**Solution:**\n\n`;
-            solverMarkdown += `${item.solution}\n\n`;
-            if (index < summary.unansweredQuestions.length - 1) {
-                solverMarkdown += `---\n\n`;
+        // Check if new string format (Markdown)
+        if (typeof summary.unansweredQuestions === 'string') {
+            // robustness: check if it's actually a JSON string (from previous bug)
+            let isJsonArray = false;
+            let parsedArray = null;
+            if (summary.unansweredQuestions.trim().startsWith('[')) {
+                try {
+                    parsedArray = JSON.parse(summary.unansweredQuestions);
+                    if (Array.isArray(parsedArray)) {
+                        isJsonArray = true;
+                    }
+                } catch (e) {
+                    // Not JSON, continue as markdown
+                }
             }
-        });
 
-        return (
-            <div className="summary-card detailed-mode markdown-mode">
-                <div className="summary-content">
-                    <div className="summary-text-content scrollable">
-                        <div className="markdown-body">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkMath]}
-                                rehypePlugins={[rehypeKatex, rehypeRaw]}
-                            >
-                                {solverMarkdown}
-                            </ReactMarkdown>
+            if (!isJsonArray) {
+                return (
+                    <div className="summary-card detailed-mode markdown-mode">
+                        <div className="summary-content">
+                            <div className="summary-text-content scrollable">
+                                <div className="markdown-body">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkMath]}
+                                        rehypePlugins={[rehypeKatex, rehypeRaw]}
+                                    >
+                                        {summary.unansweredQuestions}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            } else {
+                // If it WAS a JSON string, update our local ref so the array logic below can handle it
+                summary.unansweredQuestions = parsedArray;
+            }
+        }
+
+        // Fallback for Legacy Array Format
+        let solverMarkdown = "";
+        if (Array.isArray(summary.unansweredQuestions)) {
+            summary.unansweredQuestions.forEach((item, index) => {
+                solverMarkdown += `### Q${index + 1}. ${item.question}\n\n`;
+                solverMarkdown += `**Solution:**\n\n`;
+                solverMarkdown += `${item.solution}\n\n`;
+                if (index < summary.unansweredQuestions.length - 1) {
+                    solverMarkdown += `---\n\n`;
+                }
+            });
+
+            return (
+                <div className="summary-card detailed-mode markdown-mode">
+                    <div className="summary-content">
+                        <div className="summary-text-content scrollable">
+                            <div className="markdown-body">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkMath]}
+                                    rehypePlugins={[rehypeKatex, rehypeRaw]}
+                                >
+                                    {solverMarkdown}
+                                </ReactMarkdown>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        );
+            );
+        }
     }
 
     // --- MODE 2: DETAILED REVISION (Object with sections) ---

@@ -349,6 +349,11 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
         generationConfig: { responseMimeType: "application/json" }
     });
 
+    // Model for plain text/markdown generation
+    const textModel = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash"
+    });
+
     const filePart = {
         fileData: {
             mimeType: "application/pdf",
@@ -626,152 +631,85 @@ OUTPUT FORMAT (strict JSON):
                 You are an expert academic tutor.
                 I will provide you with a PDF (study material).
 
-                Your task is to **Scan, Filter, and Solve ONLY UNANSWERED QUESTIONS** found in the PDF.
+                Your task is to **Scan the PDF and solve ONLY the UNANSWERED QUESTIONS** found in it.
 
-                ### 1. SCANNING & IDENTIFICATION
-                Scan the entire document for "Question Patterns":
-                - "Q1", "Question:", "Problem", "Exercise", "Solve", "Evaluate", "Explain", etc.
-                - Short answer questions, long answer questions, numerical problems.
+                **CRITICAL DETECTION RULES:**
+                1. **Scan Everywhere**: Look specifically for "Tutorials", "Exercises", "Assignments", "Practice Problems", and "Question Banks".
+                2. **Definition of "Unanswered"**:
+                   - If a question has a **FULL STEP-BY-STEP SOLUTION** in the PDF -> IGNORE IT.
+                   - If a question has **ONLY A FINAL ANSWER KEY** (e.g., "Ans: 5") -> **SOLVE IT** (Students need the workings).
+                   - If a question has "Hints" -> **SOLVE IT**.
+                   - If you are unsure -> **SOLVE IT**.
 
-                ### 2. CLASSIFICATION & FILTERING (STRICT)
-                For every question found, you must classify it:
+                **OUTPUT RULES (STRICT STUDENT-FRIENDLY FORMATTING):**
+                1. **Format as PROPER MARKDOWN**:
+                   - Use \`### Question [Number]\` for headers.
+                   - Use \`**bold**\` for emphasis (e.g., **Given:**, **To Find:**).
                 
-                🟢 **Answered Question** -> IGNORE
-                - If the solution/answer is present immediately after or elsewhere in the text (e.g., at the end of the chapter).
-                - Look for "Solution", "Answer", "Sol:", "Ans:", or worked-out steps.
-                
-                🟡 **Example Question** -> IGNORE
-                - If labeled as "Example", "Solved Example", "Illustration".
-                
-                🔴 **Unanswered Question** -> **KEEP & SOLVE**
-                - Only if NO solution is provided in the PDF.
-                - If a question has "Hints" but no full solution, treat it as UNANSWERED.
-
-                ### 3. GENERATION STRATEGY
-                
-                **A. DEDUPLICATION (CRITICAL)**
-                - Check if a question is repeated (e.g., once in text, once in summary).
-                - Solve it ONLY ONCE.
-                - If Q1 and Q5 are identical, output only one entry.
-
-                **B. COMPLETENESS & BREVITY (CRITICAL)**
-                - Ensure the solution is COMPLETE. Do not cut off mid-sentence.
-                - **KEEP ANSWERS SHORT**: Use 3-5 lines per solution. Show only final steps.
-                - If the solution is long, summarize the steps clearly.
-                - **LIMIT OUTPUT**: Return a MAXIMUM of 5-8 questions. If more exist, prioritize the most important/difficult ones.
-                - Use concise math notation (e.g., "$x=2$" not "therefore x equals 2").
-
-                **C. HIGH VOLUME / BATCH MODE (IMPORTANT)**
-                - **IF** you find **More than 10 similar questions** (e.g., 20 integration problems of the same type):
-                   1. **Group them**.
-                   2. Output a SINGLE entry for the group.
-                   3. **Question Text**: "Method to solve Q[Start]-Q[End] (Type: [Topic])"
-                   4. **Solution**:
-                      - Explain the **General Method** / Formula clearly.
-                      - Solve ONE representative question step-by-step as an example.
-                      - List the Final Answers for the rest (if possible to calculate quickly) or just leave it at the method.
-                - **ELSE** (If questions are distinct or few):
-                   - Solve each one individually and precisely.
-                   - Be CONCISE. avoid explaining "Why" unless asked. Just solve it.
-
-                ### RULES
-                - **MATH FORMATTING (CRITICAL)**: verify every equation.
-                   - Use **LaTeX** for ALL math expressions, equations, and symbols.
-                   - Wrap inline math in single dollar signs: $x^2 + y^2 = r^2$
-                   - Wrap block math/equations in double dollar signs:
+                2. **MATH & MATRICES (CRITICAL)**:
+                   - **NEVER** use text arrays like \`[1, 2; 3, 4]\`.
+                   - **ALWAYS** use LaTeX block math for matrices:
                      $$
-                     \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+                     A = \\begin{bmatrix} 1 & 2 \\\\ 3 & 4 \\end{bmatrix}
                      $$
-                   - Use "\\begin{bmatrix} ... \\end{bmatrix}" for matrices.
-                   - **IMPORTANT**: Since you are outputting JSON string, you must **DOUBLE ESCAPE** all backslashes.
-                     - Wrong: "\frac"
-                     - Correct: "\\frac"
-                     - Wrong: "\\begin"
-                     - Correct: "\\\\begin"
-                - **NO EXAMPLES**: Do not output questions that are examples.
-                - **NO REPEATS**: Do not output questions that already have answers in the PDF.
-                - **NO HALLUCINATIONS**: Do NOT invent new questions. Only solve what is in the PDF.
-                - **GLOBAL CHECK**: Before marking as unanswered, check if the answer key is at the end of the PDF.
+                   - Use \`$\` for inline math key terms (e.g., $x$, $y$).
+                   - Use \`$$\` for main equations so they are centered and clear.
 
-                OUTPUT FORMAT JSON (strict):
-                {
-                  "unansweredQuestions": [
-                    {
-                      "question": "The exact question text OR 'Method for QX-QY'",
-                      "solution": "Use markdown formatting. See SOLUTION FORMATTING below.",
-                      "confidence": 0.95,
-                      "context": "Briefly, where was this found? e.g., 'Chapter 3 Exercises'"
-                    }
-                  ]
-                }
+                3. **STRUCTURE (ORDERED & CLEAR)**:
+                   - **Step-by-Step**: Break the solution into **Step 1**, **Step 2**, etc.
+                   - **Multi-part Questions**: If a question has parts (a), (b), treat them clearly:
+                     **Part (a):** ...
+                     **Part (b):** ...
+                   - **Final Answer**: Clearly state the final result at the end.
 
-                ### SOLUTION FORMATTING (EXAM-READY OUTPUT)
-                
-                **0. CRITICAL: DO NOT include "Solution:" heading**
-                - The frontend already adds "Solution:" label
-                - Start directly with the content (e.g., "Let $A$ be..." or the code block)
-                
-                **1. QUESTION TEXT: Clean and format**
-                - If copying question from PDF, convert raw LaTeX to proper format
-                - Wrong: "In the matrix A = \\begin{bmatrix}..."
-                - Correct: Keep question text simple, move complex matrices to solution
-                
-                **2. STRUCTURE: Use stepwise logical flow**
-                - Use this proof structure:
-                  1. State given/let statement
-                  2. "**Define:**" block for definitions
-                  3. "**Now,**" or "**Then,**" for derivations
-                  4. "**Hence,**" or "**Therefore,**" for conclusion
-                
-                **3. DISPLAY MATH: Break equations out of paragraphs**
-                - Important equations should be on their OWN LINE using $$ blocks
-                - Add blank lines before and after $$ blocks
-                - Inline math ($...$) only for small terms like $x$, $A^T$
-                
-                **4. MATRICES: Display on separate lines**
-                - NEVER put matrices inline with text
-                - Use display blocks:
-                  $$A = \\\\begin{pmatrix} 1 & 2 \\\\\\\\ 3 & 4 \\\\end{pmatrix}$$
-                
-                **5. CODE BLOCKS (CRITICAL FOR PROGRAMMING QUESTIONS)**
-                - For ANY code solution, use FENCED CODE BLOCKS with language specifier
-                - MUST include proper NEWLINES (\\n) between lines of code
-                - Format: \`\`\`python\\ncode line 1\\ncode line 2\\n\`\`\`
-                - Example for a loop:
-                  \`\`\`python\\nn = 3\\nfor i in range(1, n + 1):\\n    print('*' * i)\\n\`\`\`
-                - WRONG (single line): "python n = 3 for i in range(n): print('*' * i)"
-                - CORRECT (multi-line with fenced block):
-                  \`\`\`python\\nn = 3\\nfor i in range(1, n + 1):\\n    print('*' * i)\\n\`\`\`
-                - Include proper INDENTATION using spaces in the code
-                - Always specify language: python, java, c, cpp, javascript, etc.
-                
-                **6. MULTI-PART ANSWERS: One per line**
-                **(a)** [answer]
-                
-                **(b)** [answer]
-                
-                **7. COUNTEREXAMPLES: Be logically correct**
-                - For "If P then Q is False": Show P is true but Q is false
-                
-                **EXAMPLE OUTPUT (Math):**
-                {
-                  "question": "Show that a square matrix can be written as sum of symmetric and skew-symmetric matrices.",
-                  "solution": "Let $A$ be a square matrix.\\n\\n**Define:**\\n\\n$$S = \\\\frac{1}{2}(A + A^T)$$\\n\\n$$K = \\\\frac{1}{2}(A - A^T)$$\\n\\n**Now,**\\n\\n$S^T = S$ ⟹ $S$ is symmetric\\n\\n$K^T = -K$ ⟹ $K$ is skew-symmetric\\n\\n**Hence,** $A = S + K$"
-                }
-                
-                **EXAMPLE OUTPUT (Code):**
-                {
-                  "question": "Write a program to print a star pattern for n=3",
-                  "solution": "\`\`\`python\\nn = 3\\nfor i in range(1, n + 1):\\n    print('*' * i)\\n\`\`\`\\n\\n**Output:**\\n\`\`\`\\n*\\n**\\n***\\n\`\`\`"
-                }
-                
-                If NO unanswered questions are found, return:
-                { "unansweredQuestions": [] }
+                4. **No JSON**: Return ONLY the Markdown string. Do not wrap it in JSON.
+                5. **If NO Questions found**: Return a simple message saying "No unanswered questions were found in this document."
+
+                Go ahead.
                 `;
 
-                const result = await performGeminiAction(() => model.generateContent([filePart, prompt]));
-                const output = cleanAndParseJSON(result.response.text());
-                batch.update(docRef, { unansweredQuestions: output.unansweredQuestions, requestUnansweredQuestions: false });
+                // FIRST ATTEMPT: Standard Context-Aware Scan
+                let result = await performGeminiAction(() => textModel.generateContent([filePart, prompt]));
+                let output = result.response.text();
+
+                // FALLBACK CHECK: If no questions found, try "Aggressive Mode"
+                if (output.includes("No unanswered questions were found")) {
+                    logger.warn("Solver: First attempt found no questions. Retrying with AGGRESSIVE prompt.");
+
+                    const aggressivePrompt = `
+                    IMPORTANT: You are in FALLBACK MODE.
+                    The user definitely believes there are questions in this file, but a previous scan missed them.
+                    
+                    **YOUR NEW TASK:**
+                    - Scan the ENTIRE PDF for ANY text that looks like a question, exercise, or problem.
+                    - **IGNORE** whether it seems answered or not.
+                    - **IGNORE** whether it is an example or a main question.
+                    - **EXTRACT AND SOLVE EVERYTHING.**
+                    
+                    **STRICT STUDENT-FRIENDLY FORMATTING:**
+                    1. **STRUCTURE**:
+                       - \`### Question [Number]\`
+                       - **Step 1:** ...
+                       - **Step 2:** ...
+                       - Use clear vertical spacing.
+                    
+                    2. **MATH & MATRICES**:
+                       - **NEVER** use \`[a, b]\` format.
+                       - **ALWAYS** use LaTeX:
+                         $$
+                         \\begin{bmatrix} a & b \\\\ c & d \\end{bmatrix}
+                         $$
+                    
+                    3. Output plain MARKDOWN only.
+                    `;
+
+                    // Simple retry without the jitter/backoff wrapper since this is a logic retry, not a network retry
+                    // But we still use performGeminiAction for rate limit safety
+                    result = await performGeminiAction(() => textModel.generateContent([filePart, aggressivePrompt]));
+                    output = result.response.text();
+                }
+
+                batch.update(docRef, { unansweredQuestions: output, requestUnansweredQuestions: false });
                 hasUpdates = true;
             } catch (error) {
                 logger.error("Error generating unanswered questions:", error);
