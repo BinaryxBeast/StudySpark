@@ -11,7 +11,7 @@ import ThemeToggle from './components/ThemeToggle';
 import FileSelected from './components/FileSelected';
 import ProcessingIndicator from './components/ProcessingIndicator';
 import PrintableStudyGuide from './components/PrintableStudyGuide';
-import { useReactToPrint } from 'react-to-print';
+import html2pdf from 'html2pdf.js';
 
 
 function App() {
@@ -45,10 +45,20 @@ function App() {
   // Print Ref
   const printRef = React.useRef();
 
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: file ? `StudySpark - ${file.name.replace('.pdf', '')}` : 'StudySpark Guide',
-  });
+  const handleDownloadPDF = () => {
+    const element = printRef.current;
+    if (!element) return;
+
+    const opt = {
+      margin: 10,
+      filename: file ? `StudySpark - ${file.name.replace('.pdf', '')}.pdf` : 'StudySpark-Guide.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  };
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -769,7 +779,7 @@ function App() {
               )}
               {(data && (data.summary || data.quiz || data.longQuestions)) && (
                 <div className="download-pdf-container">
-                  <button className="download-pdf-btn" onClick={handlePrint}>
+                  <button className="download-pdf-btn" onClick={handleDownloadPDF}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
                     </svg>
