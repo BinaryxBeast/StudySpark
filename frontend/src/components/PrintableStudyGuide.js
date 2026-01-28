@@ -94,10 +94,7 @@ const PrintableStudyGuide = React.forwardRef(({ data, fileName, quizAnswers = {}
 
   // Get content
   const cheatSheetContent = extractSummaryString(data.cheatSheetSummary || data.summary);
-  const detailedSummaryContent = extractSummaryString(data.detailedSummary);
 
-  // Extract Common Mistakes separately if they exist in detailedSummary
-  const commonMistakes = data.detailedSummary?.common_mistakes;
 
   // --- Styles ---
 
@@ -192,72 +189,19 @@ const PrintableStudyGuide = React.forwardRef(({ data, fileName, quizAnswers = {}
         </div>
       )}
 
-      {/* Summary Section - Exam Guide */}
-      {detailedSummaryContent && (
+      {/* Question Solver Section */}
+      {data.unansweredQuestions && (
         <div style={sectionContainerStyle}>
-          <h2 style={sectionTitleStyle}>Exam Guide</h2>
+          <h2 style={sectionTitleStyle}>Question Solver</h2>
           <div className="markdown-body" style={{ ...bodyStyle }}>
-
-            {/* Context Detection Display */}
-            {data.detailedSummary?.analysis && (
-              <div style={{
-                marginBottom: '24px',
-                padding: '16px',
-                backgroundColor: '#f8f9fa',
-                border: `1px solid ${THEME.border}`,
-                borderRadius: '8px',
-                fontSize: FONTS.subHeader
-              }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <div><strong style={{ color: THEME.muted }}>Subject:</strong> {data.detailedSummary.analysis.detected_subject}</div>
-                  <div><strong style={{ color: THEME.muted }}>Level:</strong> {data.detailedSummary.analysis.academic_level}</div>
-                  <div><strong style={{ color: THEME.muted }}>Exam Type:</strong> {data.detailedSummary.analysis.exam_type}</div>
-                  {data.detailedSummary.analysis.exam_confidence && (
-                    <div><strong style={{ color: THEME.muted }}>Confidence:</strong> {data.detailedSummary.analysis.exam_confidence}</div>
-                  )}
-                  {data.detailedSummary.analysis.reasoning_summary && (
-                    <div style={{ gridColumn: '1 / -1', marginTop: '8px', paddingTop: '8px', borderTop: `1px solid ${THEME.border}`, fontStyle: 'italic', fontSize: FONTS.body, color: THEME.muted }}>
-                      "{data.detailedSummary.analysis.reasoning_summary}"
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex, rehypeRaw]}>
-              {detailedSummaryContent}
+              {data.unansweredQuestions}
             </ReactMarkdown>
           </div>
         </div>
       )}
 
-      {/* Common Mistakes - Custom Rendering */}
-      {commonMistakes && commonMistakes.length > 0 && (
-        <div style={sectionContainerStyle}>
-          <h2 style={sectionTitleStyle}>⚠️ Common Mistakes</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {commonMistakes.map((item, idx) => (
-              <div key={idx} style={{
-                display: 'flex',
-                borderLeft: `3px solid ${THEME.error}`,
-                paddingLeft: '16px',
-                backgroundColor: '#fff', // clean, no extra bg
-              }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '4px' }}>
-                    <span style={{ color: THEME.error, marginRight: '8px', fontSize: '14px', fontWeight: 'bold' }}>✕</span>
-                    <span style={{ fontSize: '12px', color: THEME.text, fontStyle: 'italic' }}>"{item.point}"</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'flex-start' }}>
-                    <span style={{ color: THEME.success, marginRight: '8px', fontSize: '14px', fontWeight: 'bold' }}>✓</span>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: THEME.text }}>Correction: <span style={{ fontWeight: '400' }}>{item.correction}</span></span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* Spark Questions - MCQs */}
       {data.quiz && data.quiz.length > 0 && (

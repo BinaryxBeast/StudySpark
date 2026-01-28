@@ -141,7 +141,7 @@ exports.processStudyMaterial = onObjectFinalized({
 
         // Define Model
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.0-flash",
+            model: "gemini-2.5-flash",
             generationConfig: { responseMimeType: "application/json" }
         });
 
@@ -282,7 +282,8 @@ OUTPUT FORMAT JSON:
 
         await docRef.set({
             summary: output,
-            status: "summary_completed" // Indicate basic processing is done
+            status: "summary_completed", // Indicate basic processing is done
+            requestUnansweredQuestions: true // Auto-trigger question solver
         }, { merge: true });
 
         logger.log("Summary generated successfully!");
@@ -345,13 +346,13 @@ exports.generateAdditionalFeatures = onDocumentUpdated({
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value());
     const model = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash",
+        model: "gemini-2.5-flash",
         generationConfig: { responseMimeType: "application/json" }
     });
 
     // Model for plain text/markdown generation
     const textModel = genAI.getGenerativeModel({
-        model: "gemini-2.0-flash"
+        model: "gemini-2.5-flash"
     });
 
     const filePart = {
@@ -831,3 +832,100 @@ exports.cleanupOldFiles = onSchedule("every 60 minutes", async (event) => {
 });
 
 // Force release v2
+
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+
+exports.chatWithSpark = onCall({
+    secrets: [GEMINI_API_KEY],
+    cpu: 1, // Chat is lightweight
+    memory: "512MiB",
+    timeoutSeconds: 60,
+    cors: true // Verify if needed, usually onCall handles this
+}, async (request) => {
+    // 1. Validate Auth & Input
+    // if (!request.auth) throw new HttpsError('unauthenticated', 'User must be logged in.');
+
+    const { message, docId, context, history } = request.data;
+
+    if (!message || !docId) {
+        throw new HttpsError('invalid-argument', 'Message and Document ID are required.');
+    }
+
+    try {
+        // 2. Fetch File URI from Firestore
+        const docSnapshot = await getFirestore().collection("study_results").doc(docId).get();
+        if (!docSnapshot.exists) {
+            throw new HttpsError('not-found', 'Study material not found.');
+        }
+
+        const docData = docSnapshot.data();
+        const fileUri = docData.geminiFileUri;
+
+        if (!fileUri) {
+            throw new HttpsError('failed-precondition', 'File processing not complete (URI missing).');
+        }
+
+        // 3. Initialize Gemini
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY.value());
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash", // Using 1.5-flash (labeled as 2.5 per user convention) for speed
+            systemInstruction: `You are the StudySpark Assistant, an expert AI tutor.
+Your goal is to help students learn and understand the material in the provided PDF document, and answer related study questions.
+
+ROLE & BEHAVIOR:
+1. **Prioritize PDF Content**: Always check the provided PDF first. If the answer is in the PDF, base your explanation strictly on that content.
+2. **Expand with General Knowledge**: 
+   - If the user asks a question about a concept *mentioned* in the PDF but asks for more detail than what is in the document, you SHOULD generalize and explain using your broader knowledge.
+   - If the user asks a question *related* to the subject of the PDF but the specific answer is NOT in the PDF, you SHOULD answer it using your general knowledge.
+   - **Important**: When using general knowledge, briefly mention "I'm adding this from my general knowledge as it's not explicitly in the notes" to keep the user informed.
+3. **Teach, Don't Just Define**: If the user asks to "explain" a concept, do NOT just provide a one-sentence definition. Break it down, explain *how* it works, and *why* it matters.
+4. **Strict Scope - Study Only**: 
+   - If the user asks about something completely unrelated to the study topic (e.g. "Who won the World Cup?", "Write a poem about cats"), politely refuse and guide them back to the study material.
+   - Do NOT engage in general chit-chat (e.g., "How are you?").
+5. **Helpful & Clear**: Use simple language. If a concept is complex, use bullet points to break it down.
+6. **Context Handling**:
+   - If the user is on a Flashcard (context provided), explain THAT specific term.
+   - If the user is on a Quiz Question (context provided), explain WHY the answer is correct/incorrect.
+
+CONTEXT:
+\${context ? JSON.stringify(context) : "No specific UI context (General Chat)"}
+`
+        });
+
+        // 4. Construct Chat History
+        // We need to adhere to Gemini's history format: { role: "user" | "model", parts: [{ text: "..." }] }
+        // The request might send simplified history, so we map it.
+        const chatHistory = (history || []).map(msg => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.message }]
+        }));
+
+        // 5. Start Chat Session
+        const chat = model.startChat({
+            history: [
+                {
+                    role: "user",
+                    parts: [
+                        { fileData: { mimeType: "application/pdf", fileUri: fileUri } },
+                        { text: "Here is the study material I am referencing." }
+                    ]
+                },
+                {
+                    role: "model",
+                    parts: [{ text: "Understood. I am ready to answer questions based on this document." }]
+                },
+                ...chatHistory
+            ]
+        });
+
+        // 6. Send Message
+        const result = await performGeminiAction(() => chat.sendMessage(message));
+        const responseText = result.response.text();
+
+        return { reply: responseText };
+
+    } catch (error) {
+        logger.error("Chatbot Error:", error);
+        throw new HttpsError('internal', 'Failed to process chat request.', error.message);
+    }
+});

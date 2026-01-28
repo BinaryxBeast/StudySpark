@@ -17,6 +17,13 @@
   --md-on-primary: #FFFFFF;
   --md-on-primary-container: #001D36;
 
+  /* Secondary Colors - Cyan (Matches Primary Light/Secondary theme) */
+  --md-secondary: #006684;
+  --md-secondary-container: #BFE9FF;
+  /* or custom Cyan container */
+  --md-on-secondary: #FFFFFF;
+  --md-on-secondary-container: #001F2A;
+
   /* Surface Colors - Subtle Blue Tint */
   --md-surface: #FFFFFF;
   --md-surface-dim: #E8F4FC;
@@ -81,6 +88,16 @@
   --md-primary-container: #00497A;
   --md-on-primary: #003354;
   --md-on-primary-container: #D6EAFF;
+
+  /* Secondary Colors - Dark Mode */
+  --md-secondary: #006684;
+  /* Adjusted for dark mode? Usually lighter: #60D4FE */
+  --md-secondary: #74D6F1;
+  /* Using the Cyan as secondary in dark too? Or maybe darker blue? */
+  --md-secondary: #BFE9FF;
+  --md-secondary-container: #004F69;
+  --md-on-secondary: #003444;
+  --md-on-secondary-container: #BFE9FF;
 
   /* Surface Colors - Dark Mode */
   --md-surface: #1A1C1E;
@@ -184,6 +201,19 @@ body {
   color: var(--md-primary);
 }
 
+.beta-tag {
+  font-size: 10px;
+  background-color: var(--md-primary-container);
+  color: var(--md-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  transform: translateY(-6px);
+}
+
 /* Header Logo Icon */
 .header-logo-icon {
   width: 36px;
@@ -247,6 +277,8 @@ body {
   width: 100%;
   max-width: 960px;
   margin: 0 auto;
+  padding-bottom: 140px;
+  /* Prevent Chatbot Overlap: 120px + buffering */
 }
 
 /* =========================================
@@ -1324,83 +1356,242 @@ body {
 
 
 /* =========================================
-   FLASHCARDS SECTION
+   FLASHCARDS SECTION (Redesigned)
    ========================================= */
-.flashcards-container-wrapper {
-  position: relative;
+.flashcards-section-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: var(--md-spacing-xl);
 }
 
-.flashcards-header {
+/* Unified Header */
+.flashcards-main-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--md-spacing-lg);
+  width: 100%;
+  margin-bottom: var(--md-spacing-md);
+  padding: 0 var(--md-spacing-sm);
 }
 
-.flashcards-progress {
-  font-size: 14px;
-  color: var(--md-on-surface-variant);
+.flashcards-main-header h3 {
+  font-family: var(--md-font-display);
+  font-size: 20px;
   font-weight: 500;
+  color: var(--md-on-surface);
+  margin: 0;
 }
 
-.flashcards-scroll {
+.flashcards-controls-group {
   display: flex;
+  align-items: center;
   gap: var(--md-spacing-lg);
-  overflow-x: auto;
-  padding: var(--md-spacing-sm) 4px var(--md-spacing-xl);
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: var(--md-outline-variant) transparent;
 }
 
-.flashcards-scroll::-webkit-scrollbar {
-  height: 6px;
+.flashcards-progress-pill {
+  font-family: var(--md-font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+  background-color: var(--md-surface-container-high);
+  padding: 6px 16px;
+  border-radius: var(--md-radius-full);
 }
 
-.flashcards-scroll::-webkit-scrollbar-track {
+.flashcards-actions {
+  display: flex;
+  gap: var(--md-spacing-md);
+}
+
+/* Text Action Button (Shuffle/Reset) */
+.action-btn-text {
   background: transparent;
+  border: none;
+  font-family: var(--md-font-display);
+  font-size: 13px;
+  /* Smaller font */
+  font-weight: 500;
+  color: var(--md-secondary);
+  /* Secondary color */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--md-radius-full);
+  transition: all 0.2s ease;
 }
 
-.flashcards-scroll::-webkit-scrollbar-thumb {
-  background-color: var(--md-outline-variant);
-  border-radius: 3px;
+.action-btn-text:hover {
+  background-color: var(--md-surface-container-high);
+  color: var(--md-primary);
 }
 
-.swipe-hint {
-  text-align: right;
+.action-btn-text.active {
+  color: var(--md-primary);
+  background-color: var(--md-primary-container);
+  font-weight: 600;
+}
+
+.action-btn-text .material-symbols-rounded {
+  font-size: 16px;
+  /* Smaller icon */
+}
+
+/* Progress Bar Line */
+.flashcards-progress-bar-line {
+  width: 100%;
+  height: 2px;
+  background-color: var(--md-surface-container-high);
+  border-radius: 2px;
+  margin-bottom: var(--md-spacing-2xl);
+  overflow: hidden;
+}
+
+.flashcards-progress-fill {
+  height: 100%;
+  background-color: var(--md-primary);
+  transition: width 0.3s ease;
+}
+
+/* Display Area (Arrow + Card + Arrow) */
+.flashcard-display-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-spacing-xl);
+  width: 100%;
+  position: relative;
+}
+
+.nav-arrow {
+  background: var(--md-surface);
+  border: 1px solid var(--md-outline-variant);
+  color: var(--md-on-surface);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--md-elevation-1);
+}
+
+.nav-arrow:disabled {
+  opacity: 0.4;
+  /* 40% opacity */
+  cursor: default;
+  box-shadow: none;
+  background-color: transparent;
+  border-color: var(--md-outline-variant);
+}
+
+.nav-arrow:not(:disabled):hover {
+  background-color: var(--md-surface-container-highest);
+  /* Light gray hover */
+  box-shadow: var(--md-elevation-1);
+  transform: scale(1.05);
+  color: var(--md-primary);
+}
+
+.nav-arrow:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+.nav-arrow .material-symbols-rounded {
+  font-size: 24px;
+}
+
+/* Adjust icons visually */
+.nav-arrow.left span {
+  margin-right: 2px;
+}
+
+.nav-arrow.right span {
+  margin-left: 2px;
+}
+
+/* Active Card Wrapper */
+.active-card-wrapper {
+  perspective: 1000px;
+  width: 100%;
+  max-width: 520px;
+  height: 300px;
+  position: relative;
+  animation: slideInFade 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes slideInFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Click to Flip Hint */
+.click-flip-hint {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
   font-size: 12px;
   color: var(--md-on-surface-variant);
-  margin-top: calc(-1 * var(--md-spacing-lg));
-  margin-right: var(--md-spacing-sm);
+  background-color: var(--md-surface-container);
+  padding: 4px 12px;
+  border-radius: 12px;
+  opacity: 0.8;
+  animation: fadeIn 0.5s ease-out;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
-/* Flashcard */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+
+  to {
+    opacity: 0.8;
+    transform: translateX(-50%) translateY(16px);
+  }
+}
+
+/* Card Container */
 .card-container {
-  perspective: 1000px;
-  min-width: 300px;
-  width: 300px;
-  width: 300px;
-  height: 180px;
-  /* Reduced height from 200px */
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
   cursor: pointer;
-  scroll-snap-align: start;
-  flex-shrink: 0;
+}
+
+.card-container.flipped {
+  transform: rotateY(180deg);
 }
 
 .card-inner {
   position: relative;
   width: 100%;
   height: 100%;
-  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  transition: transform 0.6s;
   transform-style: preserve-3d;
-  will-change: transform;
 }
 
-.card-container.flipped .card-inner {
-  transform: rotateY(180deg);
-}
-
+/* Front & Back Common */
 .card-front,
 .card-back {
   position: absolute;
@@ -1408,78 +1599,151 @@ body {
   height: 100%;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--md-spacing-xl);
-  border-radius: var(--md-radius-md);
+  padding: 32px;
+  /* Increased padding */
+  overflow: hidden;
+}
+
+/* Front Specific */
+.card-front {
   background-color: var(--md-surface);
   border: 1px solid var(--md-outline-variant);
-  box-shadow: var(--md-elevation-1);
-  transition: box-shadow 0.2s ease;
+  color: var(--md-on-surface);
 }
 
+/* Back Specific */
 .card-back {
   background-color: var(--md-primary-container);
-  transform: rotateY(180deg);
-  border-color: transparent;
-}
-
-.card-back .card-content {
   color: var(--md-on-primary-container);
-  font-weight: 500;
+  transform: rotateY(180deg);
+  border: 1px solid transparent;
 }
 
-.card-container:hover .card-front,
-.card-container:hover .card-back {
-  box-shadow: var(--md-elevation-3);
-}
-
-.card-content {
+/* Card Content Hierarchy */
+.card-header-concept {
   font-family: var(--md-font-display);
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--md-on-surface);
-  text-align: center;
-  overflow-y: auto;
-  max-height: 100%;
-  scrollbar-width: none;
-}
-
-.card-content::-webkit-scrollbar {
-  display: none;
-}
-
-.card-hint {
-  position: absolute;
-  bottom: var(--md-spacing-md);
-  font-size: 11px;
-  color: var(--md-on-surface-variant);
+  font-size: 13px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 1.5px;
+  color: var(--md-primary);
+  margin-bottom: 16px;
+  opacity: 0.9;
+  text-align: center;
+  /* Centered title */
+}
+
+/* Front Body (Hint/Question) */
+.card-body-hint {
+  font-family: var(--md-font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--md-on-surface);
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* Back Body (Definition) */
+.card-body-definition {
+  font-family: var(--md-font-body);
+  font-size: 17px;
+  font-weight: 600;
+  /* Semibold */
+  line-height: 1.6;
+  color: var(--md-on-primary-container);
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+/* Footer / Flip Icon */
+.card-footer-action {
+  display: flex;
+  justify-content: center;
+  /* Centered icon */
+  margin-top: 16px;
+}
+
+.flip-icon {
+  font-size: 24px;
+  color: var(--md-on-surface-variant);
+  opacity: 0.5;
+  transition: transform 0.4s ease, opacity 0.2s ease;
+}
+
+/* Rotate icon on hover or interaction */
+.card-container:hover .flip-icon {
+  transform: rotate(180deg) scale(1.1);
+  opacity: 1;
+  color: var(--md-primary);
 }
 
 /* Pagination Dots */
 .pagination-dots {
   display: flex;
   justify-content: center;
-  gap: var(--md-spacing-sm);
-  margin-top: var(--md-spacing-lg);
+  gap: 8px;
+  margin-top: 32px;
 }
 
 .pagination-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--md-outline-variant);
-  transition: all 0.2s ease;
+  background-color: var(--md-surface-container-high);
+  border: 1px solid var(--md-outline-variant);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pagination-dot.active {
   background-color: var(--md-primary);
-  width: 24px;
-  border-radius: 4px;
+  border-color: var(--md-primary);
+  width: 12px;
+  height: 12px;
+  box-shadow: 0 0 0 4px var(--md-primary-container);
+}
+
+.pagination-dot:hover:not(.active) {
+  background-color: var(--md-on-surface-variant);
+  border-color: var(--md-on-surface-variant);
+}
+
+/* Dark Mode Overrides for Flashcards */
+[data-theme="dark"] .card-front {
+  background-color: var(--md-surface-container-low);
+  border-color: var(--md-outline-variant);
+}
+
+[data-theme="dark"] .card-back {
+  background-color: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+}
+
+[data-theme="dark"] .nav-arrow {
+  background-color: var(--md-surface-container);
+  border-color: var(--md-outline-variant);
+}
+
+[data-theme="dark"] .nav-arrow:not(:disabled):hover {
+  background-color: var(--md-surface-container-high);
+  color: var(--md-primary);
+}
+
+[data-theme="dark"] .card-front,
+[data-theme="dark"] .card-back {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* =========================================
@@ -1564,8 +1828,13 @@ body {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
   background-color: var(--md-surface);
-  min-height: auto;
+  min-height: 48px;
   /* Allow shrink */
+}
+
+.quiz-option:focus-visible {
+  outline: 2px solid var(--md-primary);
+  outline-offset: 2px;
 }
 
 .quiz-option:hover:not(.disabled) {
@@ -1598,7 +1867,8 @@ body {
 .quiz-option.correct {
   border-color: rgba(30, 111, 66, 0.5) !important;
   /* Muted Green Border */
-  background-color: rgba(168, 245, 192, 0.4) !important;
+  background-color: var(--md-success-container) !important;
+  color: var(--md-on-success-container) !important;
   /* Muted Green BG */
 }
 
@@ -1609,9 +1879,11 @@ body {
 }
 
 /* Wrong Answer State */
+/* Wrong Answer State */
 .quiz-option.wrong {
   border-color: var(--md-error) !important;
   background-color: var(--md-error-container) !important;
+  color: var(--md-on-error-container) !important;
 }
 
 .quiz-option.wrong .option-marker {
@@ -2168,9 +2440,8 @@ body {
   }
 
   .card-container {
-    min-width: 280px;
-    width: 280px;
-    height: 180px;
+    /* Legacy override removed or reset if needed, mostly handled by active-card-wrapper now */
+    min-width: auto;
   }
 
   .flashcards-scroll {
@@ -2289,4 +2560,96 @@ body {
   animation: md3EntranceFade 500ms cubic-bezier(0.05, 0.7, 0.1, 1.0) forwards;
   opacity: 0;
   animation-delay: 400ms;
+}
+
+/* Quiz Progress Bar */
+.quiz-progress-container {
+  margin-bottom: var(--md-spacing-lg);
+  padding: 0 var(--md-spacing-md);
+}
+
+.quiz-progress-track {
+  width: 100%;
+  height: 8px;
+  background-color: var(--md-surface-container-highest);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.quiz-progress-fill {
+  height: 100%;
+  background-color: var(--md-primary);
+  transition: width 0.3s ease;
+}
+
+.quiz-progress-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--md-on-surface-variant);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+/* =========================================
+   MOBILE OPTIMIZATION FOR FLASHCARDS
+   ========================================= */
+@media (max-width: 768px) {
+  .flashcard-display-area {
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 0 8px;
+  }
+
+  .active-card-wrapper {
+    order: 1;
+    width: 100%;
+    margin-bottom: 16px;
+    height: 380px;
+    /* Taller fixed height for mobile to fit content */
+  }
+
+  /* Arrows move to bottom on mobile */
+  .nav-arrow {
+    order: 2;
+    width: 48px;
+    /* Larger touch target */
+    height: 48px;
+    background-color: var(--md-surface-container-high);
+    border-color: var(--md-outline-variant);
+  }
+
+  .nav-arrow.left {
+    margin-right: auto;
+  }
+
+  .nav-arrow.right {
+    margin-left: auto;
+  }
+
+  .card-front,
+  .card-back {
+    padding: 24px 20px;
+  }
+
+  .card-body-hint {
+    font-size: 18px;
+  }
+
+  .card-body-definition {
+    font-size: 15px;
+  }
+
+  /* Adjust Header Layout */
+  .flashcards-main-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .flashcards-controls-group {
+    width: 100%;
+    justify-content: space-between;
+  }
 }

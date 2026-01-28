@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import '../App.css';
 
-const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, generatingState, requestsState, errorsState, externalAnswersState, onAnswersChange }) => {
+const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, generatingState, requestsState, errorsState, externalAnswersState, onAnswersChange, onContextUpdate }) => {
     // Use external state if available, otherwise local state
     const [localAnswersState, setLocalAnswersState] = useState({});
 
@@ -37,6 +37,18 @@ const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, 
                 isCorrect: isCorrect
             }
         }));
+
+        // Context Awareness for Chatbot
+        if (onContextUpdate) {
+            onContextUpdate({
+                type: 'quiz-question',
+                question: questions[qIndex].question,
+                optionSelected: option,
+                isCorrect: isCorrect,
+                correctAnswer: correctAnswer,
+                id: qIndex
+            });
+        }
     };
 
     const calculateFinalScore = () => {
@@ -47,110 +59,140 @@ const Quiz = ({ questions, longQuestions, probableQuestions, onGenerateFeature, 
         setScore(currentScore);
     };
 
-    const allAnswered = Object.keys(answersState).length === questions.length;
+    const allAnswered = Array.isArray(questions) && Object.keys(answersState).length === questions.length;
 
-    const renderMCQContent = () => (
-        <>
-            <div className="quiz-questions-list">
-                {questions.map((q, index) => {
-                    const state = answersState[index];
-                    const hasAnswered = !!state;
+    const renderMCQContent = () => {
+        // Safety check: ensure questions is an array
+        if (!Array.isArray(questions) || questions.length === 0) {
+            return renderPlaceholder('mcq');
+        }
 
-                    return (
-                        <div key={index} className="question-card">
-                            <p className="question-text">
-                                <strong>{index + 1}.</strong> {q.question.replace(/^\[(Hard|Moderate|Easy|Medium)\]\s*/i, '').replace(/^\((Hard|Moderate|Easy|Medium)\)\s*/i, '')}
-                            </p>
+        const progressPercentage = questions.length > 0 ? (runningScore.answered / questions.length) * 100 : 0;
 
-                            <div className="options-list">
-                                {q.options.map((opt, optIndex) => {
-                                    let optionClass = "quiz-option";
-                                    if (hasAnswered) {
-                                        if (opt === q.answer) {
-                                            optionClass += " correct";
-                                        } else if (state.selectedOption === opt && !state.isCorrect) {
-                                            optionClass += " wrong";
-                                        } else {
-                                            optionClass += " disabled";
-                                        }
-                                    }
-
-                                    return (
-                                        <div
-                                            key={optIndex}
-                                            className={optionClass}
-                                            onClick={() => handleOptionSelect(index, opt)}
-                                            role="button"
-                                            tabIndex={hasAnswered ? -1 : 0}
-                                            onKeyDown={(e) => e.key === 'Enter' && !hasAnswered && handleOptionSelect(index, opt)}
-                                            aria-disabled={hasAnswered}
-                                        >
-                                            <span className="option-marker">
-                                                {String.fromCharCode(65 + optIndex)}
-                                            </span>
-                                            <span className="option-text">{opt}</span>
-                                            {hasAnswered && opt === q.answer && (
-                                                <span className="feedback-icon">✓</span>
-                                            )}
-                                            {hasAnswered && state.selectedOption === opt && !state.isCorrect && (
-                                                <span className="feedback-icon">✕</span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Feedback / Explanation */}
-                            {hasAnswered && (
-                                <div className={`feedback-message ${state.isCorrect ? 'positive' : 'negative'}`}>
-                                    {state.isCorrect
-                                        ? "Correct! Well done."
-                                        : `Incorrect. The correct answer is: ${q.answer}`
-                                    }
-                                    {q.explanation && (
-                                        <p style={{ marginTop: '8px', fontWeight: 400, opacity: 0.9 }}>
-                                            {q.explanation}
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-
-            <div className="quiz-footer">
-                {score === null ? (
-                    <button
-                        className="submit-quiz-btn"
-                        onClick={calculateFinalScore}
-                        disabled={!allAnswered}
-                    >
-                        Finish Quiz
-                    </button>
-                ) : (
-                    <div className="score-display">
-                        <h3>
-                            Your Score: {score} / {questions.length}
-                            <span style={{
-                                marginLeft: '12px',
-                                fontSize: '16px',
-                                color: score >= questions.length * 0.7 ? 'var(--md-success)' : 'var(--md-on-surface-variant)'
-                            }}>
-                                {score >= questions.length * 0.7 ? '🎉 Great job!' : '📚 Keep practicing!'}
-                            </span>
-                        </h3>
-                        <button
-                            className="retry-quiz-btn"
-                            onClick={() => { setAnswersState({}); setScore(null); }}
-                        >
-                            Retry Quiz
-                        </button>
+        return (
+            <>
+                <div className="quiz-progress-container">
+                    <div className="quiz-progress-text">
+                        <span>Question {Math.min(runningScore.answered + 1, questions.length)} of {questions.length}</span>
+                        <span>{Math.round(progressPercentage)}%</span>
                     </div>
-                )}
-            </div>
-        </>
-    );
+                    <div className="quiz-progress-track">
+                        <div className="quiz-progress-fill" style={{ width: `${progressPercentage}%` }}></div>
+                    </div>
+                </div>
+                <div className="quiz-questions-list">
+                    {questions.map((q, index) => {
+                        const state = answersState[index];
+                        const hasAnswered = !!state;
+
+                        return (
+                            <div key={index} className="question-card">
+                                <p className="question-text">
+                                    <strong>{index + 1}.</strong> {q.question.replace(/^\[(Hard|Moderate|Easy|Medium)\]\s*/i, '').replace(/^\((Hard|Moderate|Easy|Medium)\)\s*/i, '')}
+                                </p>
+
+                                <div className="options-list">
+                                    {q.options.map((opt, optIndex) => {
+                                        let optionClass = "quiz-option";
+                                        if (hasAnswered) {
+                                            if (opt === q.answer) {
+                                                optionClass += " correct";
+                                            } else if (state.selectedOption === opt && !state.isCorrect) {
+                                                optionClass += " wrong";
+                                            } else {
+                                                optionClass += " disabled";
+                                            }
+                                        }
+
+                                        return (
+                                            <div
+                                                key={optIndex}
+                                                className={optionClass}
+                                                onClick={() => handleOptionSelect(index, opt)}
+                                                role="button"
+                                                tabIndex={hasAnswered ? -1 : 0}
+                                                onKeyDown={(e) => {
+                                                    if ((e.key === 'Enter' || e.key === ' ') && !hasAnswered) {
+                                                        handleOptionSelect(index, opt);
+                                                    } else if (e.key === 'ArrowDown') {
+                                                        e.preventDefault();
+                                                        const next = e.currentTarget.nextElementSibling;
+                                                        if (next) next.focus();
+                                                    } else if (e.key === 'ArrowUp') {
+                                                        e.preventDefault();
+                                                        const prev = e.currentTarget.previousElementSibling;
+                                                        if (prev) prev.focus();
+                                                    }
+                                                }}
+                                                aria-disabled={hasAnswered}
+                                            >
+                                                <span className="option-marker">
+                                                    {String.fromCharCode(65 + optIndex)}
+                                                </span>
+                                                <span className="option-text">{opt}</span>
+                                                {hasAnswered && opt === q.answer && (
+                                                    <span className="feedback-icon" aria-label="Correct" style={{ fontSize: '14px', fontWeight: 600 }}>✔ Correct</span>
+                                                )}
+                                                {hasAnswered && state.selectedOption === opt && !state.isCorrect && (
+                                                    <span className="feedback-icon" aria-label="Incorrect" style={{ fontSize: '14px', fontWeight: 600 }}>✖ Incorrect</span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                {/* Feedback / Explanation */}
+                                {hasAnswered && (
+                                    <div className={`feedback-message ${state.isCorrect ? 'positive' : 'negative'}`}>
+                                        {state.isCorrect
+                                            ? "Correct! Well done."
+                                            : `Incorrect. The correct answer is: ${q.answer}`
+                                        }
+                                        {q.explanation && (
+                                            <p style={{ marginTop: '8px', fontWeight: 400, opacity: 0.9 }}>
+                                                {q.explanation}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                <div className="quiz-footer">
+                    {score === null ? (
+                        <button
+                            className="submit-quiz-btn"
+                            onClick={calculateFinalScore}
+                            disabled={!allAnswered}
+                        >
+                            Finish Quiz
+                        </button>
+                    ) : (
+                        <div className="score-display">
+                            <h3>
+                                Your Score: {score} / {questions.length}
+                                <span style={{
+                                    marginLeft: '12px',
+                                    fontSize: '16px',
+                                    color: score >= questions.length * 0.7 ? 'var(--md-success)' : 'var(--md-on-surface-variant)'
+                                }}>
+                                    {score >= questions.length * 0.7 ? '🎉 Great job!' : '📚 Keep practicing!'}
+                                </span>
+                            </h3>
+                            <button
+                                className="retry-quiz-btn"
+                                onClick={() => { setAnswersState({}); setScore(null); }}
+                            >
+                                Retry Quiz
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </>
+        );
+    };
 
     const renderLongAnswerContent = () => {
         // 1. Loading State

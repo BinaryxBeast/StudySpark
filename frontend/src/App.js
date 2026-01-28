@@ -5,14 +5,14 @@ import { ref, uploadBytesResumable } from "firebase/storage";
 import { doc, onSnapshot, deleteDoc, updateDoc } from "firebase/firestore";
 
 import SummaryCard from './components/SummaryCard';
-import Flashcard from './components/Flashcard';
+import FlashcardsSection from './components/FlashcardsSection';
 import Quiz from './components/Quiz';
 import ThemeToggle from './components/ThemeToggle';
 import FileSelected from './components/FileSelected';
 import ProcessingIndicator from './components/ProcessingIndicator';
 import PrintableStudyGuide from './components/PrintableStudyGuide';
 import html2pdf from 'html2pdf.js';
-
+import Chatbot from './components/Chatbot';
 
 function App() {
   const [file, setFile] = useState(null);
@@ -41,23 +41,15 @@ function App() {
 
   // Quiz Answers State (Lifted up for PDF)
   const [quizAnswers, setQuizAnswers] = useState({});
+  const [chatContext, setChatContext] = useState(null);
 
   // Print Ref
   const printRef = React.useRef();
 
   const handleDownloadPDF = () => {
-    const element = printRef.current;
-    if (!element) return;
-
-    const opt = {
-      margin: 10,
-      filename: file ? `StudySpark - ${file.name.replace('.pdf', '')}.pdf` : 'StudySpark-Guide.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    html2pdf().set(opt).from(element).save();
+    // We now use the native browser print, which generates vector PDFs (no pixelation).
+    // The CSS @media print handles showing only the printable content.
+    window.print();
   };
 
   // Load theme from localStorage on mount
@@ -234,17 +226,7 @@ function App() {
     await handleUpload('cheat-sheet'); // Default to cheat-sheet
   };
 
-  const handleGenerateDetailed = async () => {
-    if (!file) return;
-    const docId = file.name.replace(".pdf", "");
-    const docRef = doc(db, "study_results", docId);
 
-    try {
-      await updateDoc(docRef, { requestDetailedSummary: true });
-    } catch (error) {
-      console.error("Error requesting detailed summary:", error);
-    }
-  };
 
   const handleGenerateFeature = async (feature) => {
     if (!file) return;
@@ -304,10 +286,31 @@ function App() {
               <img src={process.env.PUBLIC_URL + '/favicon.png'} alt="StudySpark Logo" className="header-logo-icon" />
               <span className="logo-study">Study</span>
               <span className="logo-spark">Spark</span>
+              <span className="beta-tag">BETA</span>
             </span>
           </div>
 
           <div className="header-actions">
+            {showResults && (
+              <button
+                className="icon-button"
+                onClick={handleDownloadPDF}
+                title="Download PDF"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--md-on-surface-variant)',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <span className="material-symbols-rounded">download</span>
+              </button>
+            )}
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
             {showResults && (
               <button className="reset-button" onClick={() => { setData(null); setFile(null); setUploadStatus('idle'); setUploadProgress(0); setErrorMessage(null); setShowResults(false); }}>
@@ -426,16 +429,12 @@ function App() {
                 <div className="spark-nav-pills">
                   {[
                     { id: 'cheat-sheet', label: 'Cheat Sheet' },
-                    { id: 'detailed', label: 'Exam Guide' },
                     { id: 'solver', label: 'Question Solver' }
                   ].map(tab => (
                     <button
                       key={tab.id}
                       onClick={() => {
                         setActiveSummaryTab(tab.id);
-                        if (tab.id === 'detailed' && !data.hasDetailedSummary && !data.requestDetailedSummary) {
-                          handleGenerateDetailed();
-                        }
                         if (tab.id === 'solver' && !data.unansweredQuestions && !data.requestUnansweredQuestions) {
                           handleGenerateFeature('unanswered');
                         }
@@ -461,26 +460,7 @@ function App() {
                     )
                   )}
 
-                  {activeSummaryTab === 'detailed' && (
-                    data.hasDetailedSummary ? (
-                      <SummaryCard summary={data.detailedSummary} />
-                    ) : (
-                      <div className="feature-generation-section">
-                        {data.requestDetailedSummary ? (
-                          <>
-                            <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
-                            <p className="loading-text">Generating Exam Guide...</p>
-                          </>
-                        ) : (
-                          <div className="detailed-guide-promo">
-                            <button className="generate-detailed-btn" onClick={handleGenerateDetailed}>
-                              Generate Exam Guide
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  )}
+
 
                   {activeSummaryTab === 'solver' && (
                     data.unansweredQuestions ? (
@@ -520,74 +500,72 @@ function App() {
 
 
               <div className="results-section">
-                <h3>
-                  <span>Flashcards</span>
-                  {data.flashcards && (
-                    <span className="flashcards-progress">{data.flashcards.length} cards</span>
-                  )}
-                </h3>
                 {data.flashcards ? (
-                  <div className="flashcards-container-wrapper">
-                    <div className="flashcards-scroll">
-                      {data.flashcards.map((card, i) => (
-                        <Flashcard key={i} card={card} />
-                      ))}
-                    </div>
-                    <div className="swipe-hint">Swipe to see more →</div>
-                  </div>
+                  <FlashcardsSection
+                    flashcards={data.flashcards}
+                    onContextUpdate={setChatContext}
+                  />
                 ) : (
-                  <div className="feature-generation-section flashcards-pending">
-                    {data.requestFlashcards ? (
-                      <>
-                        <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
-                        <p className="loading-text">Generating flashcards...</p>
-                      </>
-                    ) : data.flashcardsError ? (
-                      <>
-                        <p className="error-message" style={{ color: 'var(--md-error)', marginBottom: '12px' }}>
-                          {data.flashcardsError}
-                        </p>
-                        <button
-                          className="generate-feature-btn"
-                          onClick={() => handleGenerateFeature('flashcards')}
-                          disabled={generatingFlashcards}
-                        >
-                          🔄 Retry Flashcards
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        {/* Placeholder Preview Cards */}
-                        <div className="flashcard-placeholders">
-                          <div className="flashcard-placeholder">
-                            <span className="placeholder-question">What is LVDT?</span>
-                            <span className="placeholder-hint">Tap to reveal</span>
-                          </div>
-                          <div className="flashcard-placeholder">
-                            <span className="placeholder-question">Define null position</span>
-                            <span className="placeholder-hint">Tap to reveal</span>
-                          </div>
-                          <div className="flashcard-placeholder">
-                            <span className="placeholder-question">Explain signal conditioning</span>
-                            <span className="placeholder-hint">Tap to reveal</span>
-                          </div>
-                        </div>
-                        <div className="flashcards-cta">
-                          <p className="feature-description">Test your memory with auto-generated flashcards.</p>
+                  <>
+                    <h3>
+                      <span>Flashcards</span>
+                      {data.flashcards && (
+                        <span className="flashcards-progress">{data.flashcards.length} cards</span>
+                      )}
+                    </h3>
+                    <div className="feature-generation-section flashcards-pending">
+                      {data.requestFlashcards ? (
+                        <>
+                          <div className="analyzing-loader" style={{ margin: '0 auto 16px' }}></div>
+                          <p className="loading-text">Generating flashcards...</p>
+                        </>
+                      ) : data.flashcardsError ? (
+                        <>
+                          <p className="error-message" style={{ color: 'var(--md-error)', marginBottom: '12px' }}>
+                            {data.flashcardsError}
+                          </p>
                           <button
                             className="generate-feature-btn"
                             onClick={() => handleGenerateFeature('flashcards')}
                             disabled={generatingFlashcards}
                           >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                            </svg>
-                            Generate Flashcards
+                            🔄 Retry Flashcards
                           </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
+                        </>
+                      ) : (
+                        <>
+                          {/* Placeholder Preview Cards */}
+                          <div className="flashcard-placeholders">
+                            <div className="flashcard-placeholder">
+                              <span className="placeholder-question">What is LVDT?</span>
+                              <span className="placeholder-hint">Tap to reveal</span>
+                            </div>
+                            <div className="flashcard-placeholder">
+                              <span className="placeholder-question">Define null position</span>
+                              <span className="placeholder-hint">Tap to reveal</span>
+                            </div>
+                            <div className="flashcard-placeholder">
+                              <span className="placeholder-question">Explain signal conditioning</span>
+                              <span className="placeholder-hint">Tap to reveal</span>
+                            </div>
+                          </div>
+                          <div className="flashcards-cta">
+                            <p className="feature-description">Test your memory with auto-generated flashcards.</p>
+                            <button
+                              className="generate-feature-btn"
+                              onClick={() => handleGenerateFeature('flashcards')}
+                              disabled={generatingFlashcards}
+                            >
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+                              </svg>
+                              Generate Flashcards
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -615,6 +593,7 @@ function App() {
                   }}
                   externalAnswersState={quizAnswers}
                   onAnswersChange={setQuizAnswers}
+                  onContextUpdate={setChatContext}
                 />
               ) : (
                 <div className="results-section quiz-section-pending">
@@ -631,6 +610,9 @@ function App() {
                         key={tab.id}
                         onClick={() => {
                           setActiveQuizTab(tab.id);
+                          // Update context when navigating tabs
+                          setChatContext({ type: 'quiz-tab', tab: tab.label });
+
                           if (tab.id === 'mcq' && !data.quiz && !data.requestQuiz && !data.quizError) {
                             handleGenerateFeature('quiz');
                           }
@@ -777,16 +759,6 @@ function App() {
                 </div>
 
               )}
-              {(data && (data.summary || data.quiz || data.longQuestions)) && (
-                <div className="download-pdf-container">
-                  <button className="download-pdf-btn" onClick={handleDownloadPDF}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" />
-                    </svg>
-                    Download as PDF
-                  </button>
-                </div>
-              )}
             </div>
           )
           }
@@ -817,6 +789,8 @@ function App() {
           </div>
         )
       }
+
+      <Chatbot fileName={file?.name} context={chatContext} />
     </>
   );
 }
