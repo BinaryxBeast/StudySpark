@@ -110,6 +110,33 @@ StudySpark addresses these problems by analyzing uploaded PDFs and converting th
 
 ---
 
+## Deployment
+
+StudySpark is automatically deployed to Firebase Hosting using GitHub Actions.
+
+### Continuous Deployment
+- **Production:** Automatic deployment to [studyspark-ed989.firebaseapp.com](https://studyspark-ed989.firebaseapp.com/) on push to `main`
+- **Preview:** Automatic preview deployments for pull requests
+
+### Manual Deployment
+
+```bash
+# Install dependencies
+cd frontend
+npm install
+
+# Build the app
+npm run build
+
+# Deploy to Firebase (requires Firebase CLI and authentication)
+cd ..
+firebase deploy --only hosting
+```
+
+For detailed deployment instructions, see [.github/workflows/README.md](.github/workflows/README.md).
+
+---
+
 ## Contributing
 
 Contributions are welcome.
