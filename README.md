@@ -133,7 +133,7 @@ cd ..
 firebase deploy --only hosting
 ```
 
-For detailed deployment instructions, see [.github/workflows/README.md](.github/workflows/README.md).
+For detailed deployment instructions, setup guide, and troubleshooting, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ---
 
